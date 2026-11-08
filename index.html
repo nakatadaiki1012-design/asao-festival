@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>麻生高校 校舎案内マップ</title>
+  <meta name="description" content="神奈川県立麻生高等学校の校舎配置図・案内図。3Dと2Dで校舎を見て、部屋をクリックすると紹介が表示されます。">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <!-- 読み込みを速くするため、使うプログラムを最初にまとめて取りに行く（順番待ちをしない） -->
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" crossorigin>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js" crossorigin>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/renderers/CSS2DRenderer.js" crossorigin>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js" crossorigin>
+  <link rel="modulepreload" href="js/app.js">
+  <link rel="modulepreload" href="js/data.js">
+  <link rel="modulepreload" href="js/info.js">
+  <link rel="modulepreload" href="js/furniture.js">
+  <link rel="modulepreload" href="js/site.js">
+  <link rel="modulepreload" href="js/nature.js">
+  <link rel="modulepreload" href="js/tex.js">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">🏫</span>
+      <div>
+        <h1>麻生高校 校舎案内マップ</h1>
+        <p class="sub">神奈川県立麻生高等学校・令和8年度 校舎配置図より</p>
+      </div>
+    </div>
+    <div class="search-box collapsed">
+      <button id="search-open" class="ghost search-icon" aria-label="部屋をさがす" title="部屋をさがす（キーボード：/）">🔍</button>
+      <input id="search" type="search" placeholder="部屋をさがす（例：職員室、2-4、トイレ）" autocomplete="off">
+      <ul id="results" hidden></ul>
+    </div>
+    <div class="top-actions">
+      <button id="rooms-btn" class="ghost" aria-label="部屋一覧" aria-expanded="false" title="部屋の一覧をひらく">☰<span class="txt"> 部屋一覧</span></button>
+      <div id="room-list" hidden></div>
+      <button id="map-btn" class="ghost" aria-label="地図・アクセス">📍<span class="txt"> 地図・アクセス</span></button>
+      <button id="help-btn" class="ghost" aria-label="使い方">？</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="viewer">
+      <div id="stick" aria-label="平行移動"><div class="knob"></div></div>
+      <div id="loading">校舎を読み込み中…</div>
+    </div>
+
+    <nav class="floor-bar" aria-label="表示する階">
+      <button class="floor-btn" data-floor="0">外観</button>
+      <button class="floor-btn" data-floor="3">3階</button>
+      <button class="floor-btn" data-floor="2">2階</button>
+      <button class="floor-btn" data-floor="1">1階</button>
+    </nav>
+
+    <div class="view-bar">
+      <div id="view-toggle" class="seg">
+        <button class="view-btn" data-view="3d">3D</button>
+        <button class="view-btn" data-view="2d">2D<span class="txt">（平面図）</span></button>
+      </div>
+      <label class="check"><input type="checkbox" id="labels-toggle" checked> 名前</label>
+      <label class="check"><input type="checkbox" id="furniture-toggle" checked> 家具</label>
+    </div>
+
+    <p id="floor-note" class="floor-note"></p>
+
+    <div class="dir-box">
+      <div id="compass" class="compass" title="上が北"><span>北</span></div>
+      <div class="dir-btns" aria-label="見る方向">
+        <button data-dir="n">北から</button>
+        <button data-dir="e">東から</button>
+        <button data-dir="s">南から</button>
+        <button data-dir="w">西から</button>
+        <button data-dir="top">真上</button>
+        <button data-dir="home" title="はじめの見え方にもどす（キーボード：H）">全体</button>
+      </div>
+    </div>
+
+    <!-- キーボード操作のヒント（パソコンだけ、左下に小さく1行）。押したキーは光る -->
+    <div class="key-hint" aria-hidden="true">
+      <span class="kb-grp"><span class="kb-col"><span class="kb-row"><kbd data-k="q">Q</kbd><kbd data-k="w">W</kbd><kbd data-k="e">E</kbd></span><span class="kb-row"><kbd data-k="a">A</kbd><kbd data-k="s">S</kbd><kbd data-k="d">D</kbd></span></span><span class="kb-cap">移動<br>回る</span></span>
+      <span class="kb-grp"><span class="kb-col"><span class="kb-row"><kbd class="kb-gap"></kbd><kbd data-k="arrowup">↑</kbd><kbd class="kb-gap"></kbd></span><span class="kb-row"><kbd data-k="arrowleft">←</kbd><kbd data-k="arrowdown">↓</kbd><kbd data-k="arrowright">→</kbd></span></span><span class="kb-cap">移動</span></span>
+      <span class="kb-grp"><span class="kb-col"><kbd data-k="+">＋</kbd><kbd data-k="-">−</kbd></span><span class="kb-cap">ズーム</span></span>
+      <span class="kb-grp"><span class="kb-col"><kbd data-k="h">H</kbd><kbd data-k="escape">Esc</kbd></span><span class="kb-cap">全体<br>閉じる</span></span>
+      <span class="kb-mouse">ドラッグ 回す<br>右ドラッグ 動かす<br>ダブルクリック 近づく</span>
+    </div>
+
+    <div class="aerial-box">
+      <div class="aerial-row">
+        <button id="here-btn" class="ghost here-btn" title="スマホのGPSで、今いる場所を表示（もう一度押すと消える）">📍 現在地</button>
+        <button id="aerial-btn" class="ghost">🛰️ 航空写真</button>
+        <button id="align-open" class="ghost small" hidden>位置合わせ</button>
+      </div>
+      <p id="aerial-msg" class="aerial-msg"></p>
+      <p id="geo-msg" class="aerial-msg geo-msg" role="status"></p>
+      <p id="aerial-credit" class="credit" hidden>航空写真：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a></p>
+      <div id="align-panel" hidden>
+        <p class="muted">校舎と航空写真の建物が重なるように調整してください（1階を「2D」で見ると合わせやすいです）。</p>
+        <label>回転<input type="range" name="rot" min="-180" max="180" step="0.5"><output></output></label>
+        <label>左右<input type="range" name="x" min="-200" max="200" step="0.5"><output></output></label>
+        <label>上下<input type="range" name="z" min="-200" max="200" step="0.5"><output></output></label>
+        <label>大きさ<input type="range" name="scale" min="0.6" max="1.6" step="0.01"><output></output></label>
+        <p class="muted">合わせたら、この数字を教えてください：<br><code id="align-code"></code></p>
+        <button id="align-reset" class="ghost small">元に戻す</button>
+      </div>
+    </div>
+
+    <aside id="panel" aria-live="polite">
+      <button id="panel-close" class="close" aria-label="閉じる">×</button>
+      <div id="panel-body"></div>
+    </aside>
+  </main>
+
+  <dialog id="map-dialog">
+    <div class="dlg-head">
+      <h2>地図・アクセス</h2>
+      <button data-close class="close" aria-label="閉じる">×</button>
+    </div>
+    <div id="school-info"></div>
+    <iframe id="gmap" title="麻生高校の地図（Googleマップ）" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+  </dialog>
+
+  <dialog id="help-dialog">
+    <div class="dlg-head">
+      <h2>使い方</h2>
+      <button data-close class="close" aria-label="閉じる">×</button>
+    </div>
+    <ul class="help">
+      <li><b>外観</b>：校舎全体を立体で見られます。建物や「1号館」などの名前を押すと、その建物の案内が出ます。</li>
+      <li><b>1階・2階・3階</b>：その階の部屋が色分けで表示されます。部屋を押すと紹介と写真が出ます。写真を押すと大きく見られます。</li>
+      <li><b>見る方向</b>：右上の「北から」「東から」などのボタンで、その方角から校舎を見られます。丸い方位磁針の赤い先が北です。</li>
+      <li><b>3D / 2D</b>：2Dにすると、上から見た平面図（案内図）になります。</li>
+      <li><b>動かし方</b>：ドラッグで回転、右ドラッグ（スマホは2本指）で移動、ホイール（スマホはピンチ）で拡大・縮小。</li>
+      <li><b>検索</b>：上の🔍に「職員室」「2-4」「としょ」「トイレ」「プール」などと入れると、その場所へ移動します。ひらがなでも探せます。</li>
+      <li><b>現在地</b>：学校にいるとき、右下の「現在地」を押すと、スマホのGPSで今いる場所に青い点が出ます。</li>
+      <li><b>航空写真</b>：右下の「航空写真」で、本物の航空写真（国土地理院）を地面に表示できます。「位置合わせ」で校舎と写真の位置を合わせられます。</li>
+      <li><b>家具</b>：各階の表示では、教室の机・椅子・黒板、実験台、本棚なども表示されます。下の「家具」のチェックで消せます。</li>
+      <li><b>リンク</b>：部屋の紹介にある「リンクをコピー」で、その部屋を開いた状態のURLを共有できます（QRコードにして掲示するのもおすすめです）。</li>
+    </ul>
+    <p class="muted">部屋の位置・大きさは学校の校舎配置図（Excel）から読み取っています。階段の位置、家具の並び、外壁の窓・まわりの木は見やすさのためのイメージです。グラウンド・テニスコート・プール・駐輪場の位置や屋根の色は、Googleマップの航空写真から読み取ったおおよそのものです。外壁の色は Googleマップの3D表示の写真から読み取ったものです。</p>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

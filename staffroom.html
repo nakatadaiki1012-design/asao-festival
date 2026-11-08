@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>職員室 くわしいモデル</title>
+  <meta name="robots" content="noindex">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <style>
+    :root { --ink: #1d2733; --card: rgba(255,255,255,0.92); --accent: #1a73e8; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #dfe6ec; font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; color: var(--ink); }
+    #view { position: fixed; inset: 0; }
+    .bar { position: fixed; top: 12px; left: 12px; right: 12px; display: flex; gap: 8px; align-items: center; z-index: 5; pointer-events: none; }
+    .bar > * { pointer-events: auto; }
+    .title { background: var(--card); border-radius: 14px; padding: 8px 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+    .title b { display: block; font-size: 16px; }
+    .title span { font-size: 12px; color: #5b6673; }
+    a.back, .btn { background: var(--card); border: 0; border-radius: 999px; padding: 9px 14px; font-size: 14px; color: var(--accent); text-decoration: none; box-shadow: 0 2px 10px rgba(0,0,0,0.15); cursor: pointer; white-space: nowrap; }
+    .btn.active { background: var(--accent); color: #fff; }
+    .spacer { flex: 1; }
+    #sq { position: fixed; top: 64px; left: 12px; right: 12px; max-width: 440px; z-index: 7; display: none; background: var(--card); border-radius: 16px; box-shadow: 0 4px 18px rgba(0,0,0,0.25); padding: 10px; }
+    #sq.open { display: block; }
+    #sq input { width: 100%; box-sizing: border-box; font-size: 16px; padding: 10px 12px; border: 1px solid #c4ccd6; border-radius: 10px; }
+    #sq ul { list-style: none; margin: 8px 0 0; padding: 0; max-height: 46vh; overflow: auto; }
+    #sq li { padding: 9px 10px; border-radius: 10px; cursor: pointer; }
+    #sq li:hover, #sq li:focus { background: #e6f0fd; outline: none; }
+    #sq li b { display: block; font-size: 15px; }
+    #sq li span { font-size: 12px; color: #5b6673; }
+    #sq .none { color: #5b6673; font-size: 13px; padding: 8px 4px; }
+    #sq-note { position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; z-index: 6; background: #fff4c2; border: 2px solid #f0a020; border-radius: 14px; padding: 8px 14px; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.25); display: none; max-width: 80vw; text-align: center; }
+    .views { position: fixed; right: 12px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
+    #stick { position: fixed; left: 22px; bottom: 26px; width: 96px; height: 96px; border-radius: 50%; z-index: 6; touch-action: none; user-select: none; -webkit-user-select: none;
+      background: radial-gradient(circle, rgba(255,255,255,0.18) 0 45%, rgba(255,255,255,0.28) 46% 100%); border: 3px solid rgba(26,115,232,0.45); box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      display: grid; place-items: center; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    #stick.show { opacity: 1; pointer-events: auto; }
+    #stick .knob { width: 38px; height: 38px; border-radius: 50%; background: rgba(26,115,232,0.45); border: 3px solid rgba(255,255,255,0.8); box-shadow: 0 2px 6px rgba(0,0,0,0.25); pointer-events: none; }
+    #stick.on .knob { background: rgba(26,115,232,0.75); }
+    body.walking #stick { display: none; }
+    .tag { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 10px; color: #fff; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,0.3); pointer-events: none; }
+    .hint { position: fixed; left: 12px; bottom: 16px; background: var(--card); border-radius: 12px; padding: 8px 12px; font-size: 12px; line-height: 1.6; max-width: 280px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); z-index: 5; }
+    #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #dfe6ec; z-index: 10; font-size: 15px; }
+    .pad { display: none; position: fixed; right: 12px; bottom: 16px; z-index: 6; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px); gap: 6px; }
+    body.walking .pad { display: grid; }
+    body.walking .hint { display: none; }
+    .vmenu { display: none; flex-direction: column; gap: 6px; background: rgba(255,255,255,0.6); padding: 6px; border-radius: 16px; }
+    .vmenu.open { display: flex; }
+    body.walking .views .btn[data-v], body.walking #vmenu-btn { display: none; }
+    body.walking .views { bottom: 210px; }
+    .pad button { border: 0; border-radius: 14px; background: rgba(255,255,255,0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.25); font-size: 24px; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .pad button:active { background: var(--accent); color: #fff; }
+    .pad [data-f="1"] { grid-column: 2; grid-row: 1; } .pad [data-t="1"] { grid-column: 1; grid-row: 2; } .pad [data-t="-1"] { grid-column: 3; grid-row: 2; } .pad [data-f="-1"] { grid-column: 2; grid-row: 3; } .pad .end { grid-column: 1; grid-row: 3; font-size: 13px; font-weight: 700; }
+    @media (max-width: 600px) { .title { display: none; } .title span { display: none; } .hint { display: none; } }
+  </style>
+</head>
+<body>
+  <div id="loading">職員室を読み込んでいます…</div>
+  <div id="view"></div>
+  <div class="bar">
+    <a class="back" href="./#room=F2-AY126">← マップにもどる</a>
+    <div class="title"><b>職員室（くわしいモデル）</b><span>2号館2階・配置図の寸法どおり（東西24m × 南北7.4m）</span></div>
+    <span class="spacer"></span>
+    <button class="btn" id="sq-btn">🔍 備品をさがす</button>
+  </div>
+  <div id="sq"><input id="sq-in" type="search" placeholder="書類・備品の名前（ひらがなでもOK）" autocomplete="off"><ul id="sq-list"></ul></div>
+  <div id="sq-note"></div>
+  <div class="views">
+    <div id="vmenu" class="vmenu">
+      <button class="btn" data-v="walk">目の高さ（西から）</button>
+      <button class="btn" data-v="east">目の高さ（東から）</button>
+      <button class="btn" data-v="sink">流し・テーブルのほう</button>
+      <button class="btn" data-v="print">となりの印刷室</button>
+      <button class="btn" data-v="men">男子更衣室</button>
+      <button class="btn" data-v="top">真上</button>
+      <button class="btn" data-v="bird">ななめ上</button>
+    </div>
+    <button class="btn" id="vmenu-btn">📍 見る場所 ▾</button>
+    <button class="btn" id="walk-btn">🚶 中を歩く</button>
+  </div>
+  <div id="stick" aria-label="平行移動"><div class="knob"></div></div>
+  <div id="pad" class="pad"><button data-f="1" aria-label="前へ">▲</button><button data-t="1" aria-label="左を向く">⟲</button><button data-t="-1" aria-label="右を向く">⟳</button><button data-f="-1" aria-label="後ろへ">▼</button><button data-end="1" class="end">おわる</button></div>
+  <p class="hint">ドラッグ：画面のまん中に見えている所を中心に回す（真上から見ているときは、ずらす）。右ドラッグ・2本指：ずらす。ホイール：指した方へ進む／もどる（スマホはピンチ）。ダブルクリック・ダブルタップ：そこへ近づく。<br>「中を歩く」：ドラッグで見まわし、W・S（↑・↓）で前後、A・D で横、←・→ で向きを変える。スマホは画面のボタン。Esc でおわり。</p>
+  <script type="module" src="js/staffroom.js"></script>
+</body>
+</html>
