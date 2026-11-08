@@ -376,3 +376,49 @@ body.exploring .aerial-box .geo-msg { order: -1; } /* 説明はボタンの上�
 #stick .knob { width: 38px; height: 38px; border-radius: 50%; background: rgba(26,115,232,0.45); border: 3px solid rgba(255,255,255,0.8); box-shadow: 0 2px 6px rgba(0,0,0,0.25); pointer-events: none; }
 #stick.on .knob { background: rgba(26,115,232,0.75); }
 body.exploring #stick { display: none; }
+
+/* ---------- 文化祭の出し物 ---------- */
+.ex-btn {
+  padding: 8px 14px; border-radius: 999px; border: none; white-space: nowrap; cursor: pointer;
+  background: #e8590c; color: #fff; font-weight: 700; box-shadow: 0 2px 12px rgba(232, 89, 12, 0.35);
+}
+.ex-btn:hover { background: #d9480f; }
+.ex-badge:not(:empty) { margin-left: 6px; background: #fff; color: #e8590c; border-radius: 999px; padding: 0 7px; font-size: 12px; }
+@media (max-width: 760px) {
+  .ex-btn { padding: 6px 10px; font-size: 13px; }
+  .ex-btn .txt { display: none; }
+}
+/* 地図の上の名前：出し物のある場所は、ジャンルの色で目立たせる */
+.room-label.ex, .wing-label.ex {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: var(--g); color: #fff; border: 2px solid #fff; border-radius: 8px;
+  padding: 2px 8px; font-size: 11px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); writing-mode: horizontal-tb;
+}
+.room-label.ex .ex-name, .wing-label.ex .ex-name { font-size: 10px; font-weight: 600; opacity: 0.9; }
+.room-label.ex .ex-title, .wing-label.ex .ex-title { font-size: 13px; font-weight: 800; max-width: 11em; overflow: hidden; text-overflow: ellipsis; }
+.room-label.ex.selected { background: #ff9f1c; }
+.wing-label .ex-count { background: #e8590c; border-radius: 999px; padding: 1px 7px; font-size: 12px; margin-left: 4px; }
+/* 紹介の欄の出し物カード */
+.ex-cards { display: flex; flex-direction: column; gap: 10px; margin: 10px 0 14px; }
+.ex-card { border: 2px solid var(--g); border-radius: 12px; padding: 10px 12px; background: color-mix(in srgb, var(--g) 7%, #fff); }
+#panel .ex-card h3 { margin: 6px 0 2px; font-size: 18px; color: var(--ink); }
+.ex-card p { margin: 4px 0; }
+.ex-group { font-weight: 600; color: #444; }
+.ex-time { white-space: pre-line; color: #333; }
+.ex-desc { line-height: 1.6; }
+.ex-img { width: 100%; max-height: 240px; object-fit: cover; border-radius: 8px; margin: 6px 0; }
+.ex-genre { display: inline-block; background: var(--g, #868e96); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+/* 出し物の一覧 */
+#ex-dialog { width: min(560px, 94vw); }
+#ex-body h3 { margin: 14px 0 6px; font-size: 15px; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+.ex-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ex-chips button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.ex-chips button.active { background: var(--g, #1f2933); border-color: var(--g, #1f2933); color: #fff; }
+.ex-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ex-list button {
+  width: 100%; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 10px; cursor: pointer;
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center;
+}
+.ex-list button:hover { background: var(--accent-soft); }
+.ex-list button:disabled { cursor: default; opacity: 0.7; }
+.ex-list .ex-sub { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }

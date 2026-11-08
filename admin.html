@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>出し物の管理画面</title>
+  <style>
+    :root { --ink: #1f2933; --muted: #61707e; --line: #dde3e9; --bg: #f4f6f8; --ok: #2f9e44; --warn: #e67700; --ng: #e03131; --accent: #1f6fb2;
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", Meiryo, system-ui, sans-serif; color: var(--ink); }
+    body { margin: 0; background: var(--bg); }
+    header { background: #e8590c; color: #fff; padding: 14px 16px; }
+    header h1 { margin: 0; font-size: 20px; }
+    header p { margin: 4px 0 0; font-size: 13px; opacity: .9; }
+    main { max-width: 980px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    section { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 10px rgba(20, 40, 60, .08); }
+    h2 { margin: 0 0 10px; font-size: 18px; }
+    a { color: var(--accent); }
+    .btn { display: inline-block; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line); background: #fff; cursor: pointer; font-size: 14px; text-decoration: none; color: var(--ink); }
+    .btn.primary { background: #e8590c; border-color: #e8590c; color: #fff; font-weight: 700; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .status { padding: 10px 12px; border-radius: 8px; background: #f1f3f5; margin: 10px 0; line-height: 1.6; }
+    .status.ng { background: #fff5f5; color: #c92a2a; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 7px 6px; text-align: left; vertical-align: top; }
+    th { background: #f8f9fa; font-size: 13px; white-space: nowrap; }
+    .tbl { overflow-x: auto; }
+    .ok { color: var(--ok); font-weight: 700; } .warn { color: var(--warn); font-weight: 700; } .ng { color: var(--ng); font-weight: 700; }
+    .note { font-size: 12px; color: var(--warn); }
+    .muted { color: var(--muted); font-size: 13px; }
+    code { background: #f1f3f5; padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+    ol li, ul li { margin: 6px 0; line-height: 1.6; }
+    input[type=search] { padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 15px; width: min(320px, 100%); }
+    .copy { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; }
+    .tabs button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+    .tabs button.active { background: var(--ink); color: #fff; }
+    .genre { display: inline-block; color: #fff; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+    .cols td:first-child { white-space: nowrap; font-weight: 700; }
+    details summary { cursor: pointer; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎪 出し物の管理画面</h1>
+    <p>文化祭の案内マップに出す「どこで・どんな出し物をやるか」を確認・管理するページです。</p>
+  </header>
+  <main>
+    <section>
+      <h2>① 出し物を書きこむ（編集する）</h2>
+      <p>出し物の内容は <b>Google スプレッドシート</b> に書きこみます。書きこむと、数分で案内マップに反映されます（プログラムの知識はいりません）。</p>
+      <div class="row" id="sheet-links"></div>
+      <div id="status" class="status">読み込み中…</div>
+    </section>
+
+    <section>
+      <h2>② 書きこんだ内容のチェック</h2>
+      <p class="muted">「場所」がマップのどこになったかを確認できます。<span class="ng">❌</span> や <span class="warn">⚠️</span> が出たら、下の「④ 場所の一覧」の名前をそのまま「場所」の列に書いてください。</p>
+      <div class="row" style="margin-bottom:8px"><button class="btn" id="reload">🔄 読み直す</button><a class="btn" href="./" target="_blank">🗺️ 案内マップを開く</a></div>
+      <div class="tbl"><table id="check"></table></div>
+    </section>
+
+    <section>
+      <h2>③ スプレッドシートの書きかた</h2>
+      <p>1行目は見出し、2行目から1行に1つの出し物を書きます。見出しは次のとおりです（<a href="data/exhibits.csv" download="出し物のひな形.csv">ひな形をダウンロード</a>して、スプレッドシートの「ファイル → インポート」で読みこむと楽です）。</p>
+      <div class="tbl"><table class="cols">
+        <tr><th>見出し</th><th>書くこと</th><th>例</th></tr>
+        <tr><td>場所</td><td>出し物をやる場所。下の「④ 場所の一覧」の名前。クラスは「2-4」でもOK。同じ名前が別の階にあるときは「2階 図書室」のように階も書く</td><td>2-4 ／ 化学実験室 ／ 体育館 ／ 中庭</td></tr>
+        <tr><td>団体名</td><td>クラス・部活などの名前</td><td>2年4組 ／ 科学部</td></tr>
+        <tr><td>出し物名</td><td>出し物のタイトル（地図の上にも出ます。短めがおすすめ）</td><td>お化け屋敷</td></tr>
+        <tr><td>ジャンル</td><td>下の色分けのどれか（ほかの言葉はすべて「その他」の色）</td><td id="genre-list"></td></tr>
+        <tr><td>時間</td><td>やっている時間（セルの中で改行してもOK）</td><td>10:00〜15:00</td></tr>
+        <tr><td>説明</td><td>くわしい紹介</td><td>本格的なお化け屋敷です！</td></tr>
+        <tr><td>画像</td><td>（なくてもOK）画像の URL。Google ドライブの画像は「リンクを知っている全員」に共有したリンクを貼る</td><td>https://drive.google.com/file/d/…</td></tr>
+        <tr><td>非表示</td><td>（なくてもOK）「○」を書くと、その行はマップに出さない（準備中のときなど）</td><td>○</td></tr>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>④ 場所の一覧</h2>
+      <p class="muted">「場所」の列にはこの名前をそのまま書くと確実です。同じ階に同じ名前の部屋が2つ以上あるときは、右の記号（例：<code>F1-AP15</code>）を書いてください。</p>
+      <div class="row" style="margin-bottom:8px">
+        <input type="search" id="q" placeholder="さがす（例：トイレ、2-4）">
+        <span class="tabs" id="tabs"></span>
+      </div>
+      <div class="tbl"><table id="places"></table></div>
+    </section>
+
+    <section>
+      <details>
+        <summary>はじめての準備（最初に1回だけ。管理する人がやること）</summary>
+        <ol>
+          <li>Google ドライブで新しい <b>Google スプレッドシート</b> を作り、上の<a href="data/exhibits.csv" download="出し物のひな形.csv">ひな形</a>を「ファイル → インポート → アップロード」で読みこむ（「現在のシートを置換」）。</li>
+          <li>右上の <b>「共有」</b> → 「一般的なアクセス」を <b>「リンクを知っている全員」・「閲覧者」</b> にする（マップが内容を読むために必要です。書きかえはできません）。</li>
+          <li>書きこんでほしい人（実行委員など）を「共有」の「ユーザーやグループを追加」で <b>「編集者」</b> として追加する。<br><span class="muted">→ 編集できるのは、ここで追加した人だけです。</span></li>
+          <li>スプレッドシートの URL（ブラウザのアドレス欄）をコピーして、GitHub の <code>js/festival-config.js</code> の <code>sheetUrl: ""</code> の <code>""</code> の中に貼って保存する。</li>
+          <li>このページを開き直して、「② チェック」にスプレッドシートの内容が出れば完了です。</li>
+        </ol>
+        <p class="muted">スプレッドシートを使わないときは、このリポジトリの <code>data/exhibits.csv</code> を GitHub 上で直接書きかえても反映されます。</p>
+      </details>
+    </section>
+  </main>
+
+  <script type="module">
+    import { FESTIVAL, loadExhibits, matchPlace, genreColor, esc, LOCAL_CSV } from "./js/festival.js";
+    import { baseRooms } from "./js/rooms.js";
+    import { SITE_INFO, SITE } from "./js/info.js";
+
+    const rooms = baseRooms();
+    const sites = SITE_INFO.filter((it) => !it.key || SITE[it.key]);
+    const $ = (id) => document.getElementById(id);
+    const mapLink = (m) => m.room ? `./#room=${m.room.id}` : "./";
+
+    document.title = `出し物の管理画面｜${FESTIVAL.title}`;
+    $("genre-list").innerHTML = Object.keys(FESTIVAL.genres).map((g) => `<span class="genre" style="background:${genreColor(g)}">${esc(g)}</span>`).join(" ");
+    $("sheet-links").innerHTML = FESTIVAL.sheetUrl
+      ? `<a class="btn primary" href="${esc(FESTIVAL.sheetUrl)}" target="_blank" rel="noopener">📝 スプレッドシートを開いて編集する</a>`
+      : `<span class="muted">まだスプレッドシートがつながっていません。下の「はじめての準備」をしてください。（今は <code>${LOCAL_CSV}</code> の見本データを表示しています）</span>`;
+
+    async function check() {
+      $("status").textContent = "読み込み中…";
+      const { list, source, error } = await loadExhibits();
+      const from = source === "sheet" ? "Google スプレッドシート" : source === "local" ? `このリポジトリの ${LOCAL_CSV}` : "（読み込めませんでした）";
+      const rows = list.map((e) => ({ e, m: matchPlace(e.place, rooms, sites) }));
+      const nOk = rows.filter((r) => r.m && !r.m.warn).length, nWarn = rows.filter((r) => r.m?.warn).length, nNg = rows.filter((r) => !r.m).length;
+      $("status").className = "status" + (error && source !== "sheet" && FESTIVAL.sheetUrl ? " ng" : "");
+      $("status").innerHTML = `読み込み先：<b>${from}</b>　／　出し物 <b>${list.length}</b> 件（<span class="ok">✅ ${nOk}</span>　<span class="warn">⚠️ ${nWarn}</span>　<span class="ng">❌ ${nNg}</span>）`
+        + (error && FESTIVAL.sheetUrl && source !== "sheet" ? `<br>スプレッドシートを読めませんでした：${esc(error)}` : "")
+        + `<br><span class="muted">${new Date().toLocaleTimeString("ja-JP")} に確認。スプレッドシートを書きかえてから反映まで数分かかることがあります。</span>`;
+      $("check").innerHTML = `<tr><th>行</th><th>場所（書いた内容）</th><th>マップの場所</th><th>出し物名</th><th>団体名</th><th>ジャンル</th><th>時間</th></tr>` + rows.map(({ e, m }) => `
+        <tr>
+          <td>${e.line}</td>
+          <td>${esc(e.place) || '<span class="ng">（空）</span>'}</td>
+          <td>${m ? `<span class="${m.warn ? "warn" : "ok"}">${m.warn ? "⚠️" : "✅"}</span> <a href="${mapLink(m)}" target="_blank">${m.room ? `${m.room.floor}階 ${esc(m.room.name)}` : `屋外・${esc(m.site.name)}`}</a>${m.warn ? `<div class="note">${esc(m.warn)}</div>` : ""}`
+            : `<span class="ng">❌ 見つかりません</span><div class="note">「④ 場所の一覧」の名前を書いてください</div>`}</td>
+          <td>${esc(e.title)}</td><td>${esc(e.group)}</td>
+          <td>${e.genre ? `<span class="genre" style="background:${genreColor(e.genre)}">${esc(e.genre)}</span>` : ""}</td>
+          <td style="white-space:pre-line">${esc(e.time)}</td>
+        </tr>`).join("");
+    }
+    $("reload").addEventListener("click", check);
+    check();
+
+    // 場所の一覧
+    let tab = "all";
+    const places = [
+      ...rooms.filter((r) => r.cat !== "open" || /光庭|ホール|コモン|ラウンジ|展示/.test(r.name))
+        .sort((a, b) => a.floor - b.floor || a.name.localeCompare(b.name, "ja", { numeric: true }))
+        .map((r) => ({ tab: String(r.floor), where: `${r.floor}階`, name: r.name, alt: r.grade ? `${r.grade}-${r.cls}` : "", id: r.id, dup: rooms.filter((x) => x.floor === r.floor && x.name === r.name).length > 1, link: `./#room=${r.id}` })),
+      ...sites.map((s) => ({ tab: "out", where: "屋外", name: s.name, alt: "", id: "", dup: false, link: "./" })),
+    ];
+    const tabs = [["all", "すべて"], ["1", "1階"], ["2", "2階"], ["3", "3階"], ["out", "屋外"]];
+    function renderPlaces() {
+      $("tabs").innerHTML = tabs.map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? "active" : ""}">${l}</button>`).join(" ");
+      const q = $("q").value.normalize("NFKC").trim();
+      const list = places.filter((p) => (tab === "all" || p.tab === tab) && (!q || `${p.where} ${p.name} ${p.alt} ${p.id}`.includes(q)));
+      $("places").innerHTML = `<tr><th>階</th><th>「場所」に書く名前</th><th>記号</th></tr>` + list.map((p) => `
+        <tr><td>${p.where}</td>
+          <td><a href="${p.link}" target="_blank">${esc(p.name)}</a>${p.alt ? `（「${p.alt}」でもOK）` : ""} <button class="copy" data-copy="${esc(p.dup ? p.id : p.where === "屋外" ? p.name : p.name)}">コピー</button>${p.dup ? '<div class="note">同じ階に同じ名前があるので、記号を使ってください</div>' : ""}</td>
+          <td>${p.id ? `<code>${p.id}</code>` : ""}</td></tr>`).join("");
+    }
+    $("tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; renderPlaces(); } });
+    $("q").addEventListener("input", renderPlaces);
+    $("places").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-copy]");
+      if (!b) return;
+      navigator.clipboard?.writeText(b.dataset.copy).then(() => { b.textContent = "✅"; setTimeout(() => { b.textContent = "コピー"; }, 1200); });
+    });
+    renderPlaces();
+  </script>
+</body>
+</html>

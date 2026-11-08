@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>麻生高校 校舎案内マップ</title>
-  <meta name="description" content="神奈川県立麻生高等学校の校舎配置図・案内図。3Dと2Dで校舎を見て、部屋をクリックすると紹介が表示されます。">
+  <title>鴻志祭 案内マップ</title>
+  <meta name="description" content="神奈川県立麻生高等学校の文化祭の案内マップ。どこでどんな出し物をやっているかを、3Dと2Dの校舎の地図で見られます。">
   <link rel="stylesheet" href="css/style.css">
   <script type="importmap">
   {
@@ -21,6 +21,9 @@
   <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js" crossorigin>
   <link rel="modulepreload" href="js/app.js">
   <link rel="modulepreload" href="js/data.js">
+  <link rel="modulepreload" href="js/rooms.js">
+  <link rel="modulepreload" href="js/festival.js">
+  <link rel="modulepreload" href="js/festival-config.js">
   <link rel="modulepreload" href="js/info.js">
   <link rel="modulepreload" href="js/furniture.js">
   <link rel="modulepreload" href="js/site.js">
@@ -30,18 +33,19 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <span class="logo" aria-hidden="true">🏫</span>
+      <span class="logo" aria-hidden="true">🎪</span>
       <div>
-        <h1>麻生高校 校舎案内マップ</h1>
-        <p class="sub">神奈川県立麻生高等学校・令和8年度 校舎配置図より</p>
+        <h1>鴻志祭 案内マップ</h1>
+        <p class="sub">神奈川県立麻生高等学校 文化祭</p>
       </div>
     </div>
     <div class="search-box collapsed">
       <button id="search-open" class="ghost search-icon" aria-label="部屋をさがす" title="部屋をさがす（キーボード：/）">🔍</button>
-      <input id="search" type="search" placeholder="部屋をさがす（例：職員室、2-4、トイレ）" autocomplete="off">
+      <input id="search" type="search" placeholder="出し物・部屋をさがす（例：たこ焼き、2-4、トイレ）" autocomplete="off">
       <ul id="results" hidden></ul>
     </div>
     <div class="top-actions">
+      <button id="ex-btn" class="ex-btn" aria-label="出し物の一覧" title="出し物の一覧をひらく">🎪<span class="txt"> 出し物</span><span id="ex-count" class="ex-badge"></span></button>
       <button id="rooms-btn" class="ghost" aria-label="部屋一覧" aria-expanded="false" title="部屋の一覧をひらく">☰<span class="txt"> 部屋一覧</span></button>
       <div id="room-list" hidden></div>
       <button id="map-btn" class="ghost" aria-label="地図・アクセス">📍<span class="txt"> 地図・アクセス</span></button>
@@ -129,18 +133,28 @@
     <iframe id="gmap" title="麻生高校の地図（Googleマップ）" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
   </dialog>
 
+  <dialog id="ex-dialog">
+    <div class="dlg-head">
+      <h2>🎪 出し物の一覧</h2>
+      <button data-close class="close" aria-label="閉じる">×</button>
+    </div>
+    <div id="ex-body"><p class="muted">読み込み中…</p></div>
+  </dialog>
+
   <dialog id="help-dialog">
     <div class="dlg-head">
       <h2>使い方</h2>
       <button data-close class="close" aria-label="閉じる">×</button>
     </div>
     <ul class="help">
+      <li><b>🎪 出し物</b>：上の「出し物」ボタンで、すべての出し物の一覧が出ます。ジャンルでしぼりこめます。押すと、その場所へ移動します。</li>
+      <li><b>色のついた名前</b>：各階の地図で、出し物をやっている部屋は色つきの名前と出し物名で表示されます。押すとくわしい内容が出ます。</li>
       <li><b>外観</b>：校舎全体を立体で見られます。建物や「1号館」などの名前を押すと、その建物の案内が出ます。</li>
       <li><b>1階・2階・3階</b>：その階の部屋が色分けで表示されます。部屋を押すと紹介と写真が出ます。写真を押すと大きく見られます。</li>
       <li><b>見る方向</b>：右上の「北から」「東から」などのボタンで、その方角から校舎を見られます。丸い方位磁針の赤い先が北です。</li>
       <li><b>3D / 2D</b>：2Dにすると、上から見た平面図（案内図）になります。</li>
       <li><b>動かし方</b>：ドラッグで回転、右ドラッグ（スマホは2本指）で移動、ホイール（スマホはピンチ）で拡大・縮小。</li>
-      <li><b>検索</b>：上の🔍に「職員室」「2-4」「としょ」「トイレ」「プール」などと入れると、その場所へ移動します。ひらがなでも探せます。</li>
+      <li><b>検索</b>：上の🔍に出し物の名前や「2-4」「としょ」「トイレ」などと入れると、その場所へ移動します。ひらがなでも探せます。</li>
       <li><b>現在地</b>：学校にいるとき、右下の「現在地」を押すと、スマホのGPSで今いる場所に青い点が出ます。</li>
       <li><b>航空写真</b>：右下の「航空写真」で、本物の航空写真（国土地理院）を地面に表示できます。「位置合わせ」で校舎と写真の位置を合わせられます。</li>
       <li><b>家具</b>：各階の表示では、教室の机・椅子・黒板、実験台、本棚なども表示されます。下の「家具」のチェックで消せます。</li>

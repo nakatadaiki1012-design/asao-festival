@@ -4,6 +4,8 @@ import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { speckle, hsl } from "./tex.js";
 import { ROOMS_RAW } from "./data.js";
+import { baseRooms } from "./rooms.js";
+import { FESTIVAL, loadExhibits, matchPlace, exhibitCardsHtml, genreColor, esc } from "./festival.js";
 import { FOOTPRINTS, OPEN_COURTS, STAIRS, WINGS, CATEGORIES, describe, SCHOOL, SITE, SITE_INFO, SITE_NOTE, AERIAL_ALIGN, FACADE, BLOCKS, PILOTIS, ROOM_PARTS, COLUMN_AREAS, GYM_GALLERY, ROOM_EDITS, EXTRA_ROOMS, ROOM_SPLITS, ROOM_STYLE, WALL_OPENINGS, PHOTOS, GEO_ALIGN, SEARCH_ALIASES, VENDING_NOTE } from "./info.js";
 import { buildFurniture, floorStyle, FLOOR_TEX } from "./furniture.js";
 import { buildTrees, buildColumnTrees, hedgeBox, hedgeMass, matHedge, bakeStatic } from "./nature.js";
@@ -75,18 +77,7 @@ function inBlock(parent, b) {
 
 // ---------- 部屋データ ----------
 // 分ける部屋を、横にならんだ小さな部屋にする
-const splitRooms = ROOMS_RAW.filter((r) => r.name !== "窯").flatMap((r) => { // 窯は工芸教室の中の家具にする
-  const sp = ROOM_SPLITS.find((x) => x.name === r.name && x.floor === r.floor && x.r0 === r.r0);
-  if (!sp) return [r];
-  const w = (r.c1 - r.c0 + 1) / sp.n;
-  return Array.from({ length: sp.n }, (_, i) => ({ ...r, id: `${r.id}-${i + 1}`, name: sp.names?.[i] ?? `${r.name}${i + 1}`, c0: r.c0 + w * i, c1: r.c0 + w * (i + 1) - 1 }));
-});
-const ROOMS = [...splitRooms, ...EXTRA_ROOMS].map((r) => {
-  const ed = ROOM_EDITS.find((e) => e.name === r.name && e.floor === r.floor && (e.at === undefined || e.at === r.c0) && (e.atR === undefined || e.atR === r.r0)); // atR：図面の上の行で区別
-  if (ed) r = { ...r, ...ed.set };
-  const d = describe(r.name);
-  return { ...r, ...d, ...(r.desc ? { desc: r.desc } : {}), kind: "room" }; // ROOM_EDITS で紹介文を書いたときはそれを使う
-}).filter((r) => !r.remove); // ROOM_EDITS の remove: true で消す部屋
+const ROOMS = baseRooms(); // 部屋の一覧は js/rooms.js（管理画面と共通）
 STAIRS.forEach((s, i) => {
   s.floors.forEach((f) => {
     ROOMS.push({
@@ -2173,6 +2164,7 @@ for (const w of WINGS) {
   const div = document.createElement("div");
   div.className = "wing-label";
   div.textContent = w.name;
+  w.label = div;
   div.addEventListener("pointerdown", (e) => e.stopPropagation());
   div.addEventListener("click", (e) => { e.stopPropagation(); showWing(w); });
   const obj = new CSS2DObject(div);
@@ -2189,6 +2181,7 @@ for (const it of SITE_INFO) {
   const div = document.createElement("div");
   div.className = "wing-label site";
   div.textContent = it.name;
+  it.label = div;
   div.addEventListener("pointerdown", (e) => e.stopPropagation());
   div.addEventListener("click", (e) => { e.stopPropagation(); showSite(it); });
   const obj = new CSS2DObject(div);
@@ -2418,6 +2411,7 @@ function selectRoom(r, { fly = true, close = false } = {}) {
     state.selected.label?.classList.remove("selected");
   }
   state.selected = r;
+  state.site = null;
   if (state.floor !== r.floor) setFloor(r.floor, { keepCamera: true });
   r.mesh.material.emissive.setHex(0x553300);
   showTile(r, true);
@@ -2442,6 +2436,7 @@ function selectRoom(r, { fly = true, close = false } = {}) {
     <div class="chip" style="--c:${cat.color}">${cat.label}</div>
     <h2>${r.name}</h2>
     <p class="where">${r.floor}階${r.wing ? `・<button class="link" data-wing="${r.wing.id}">${r.wing.name}</button>` : ""}</p>
+    ${exhibitCardsHtml(r.exhibits)}
     ${(() => { const ph = r.photos ? [, r.photos] : PHOTOS.find(([re, , fl]) => re.test(r.name) && (fl === undefined || fl === r.floor)); return ph ? photosHtml([].concat(ph[1]), r.name) : ""; })()}
     <p class="desc">${r.desc || "（紹介文はまだありません）"}</p>
     ${sameFloor}
@@ -2483,17 +2478,19 @@ function showWing(w) {
   flyTo(new THREE.Vector3(cx + 30, 45, cz + 45), new THREE.Vector3(cx, 5, cz));
 }
 
-function showSite(it) {
-  returnView = null;
+function showSite(it, { fly = true } = {}) {
+  if (fly) returnView = null;
+  state.site = it;
   panelBody.innerHTML = `
     <div class="chip" style="--c:#cfe3c4">屋外の施設</div>
     <h2>${it.name}</h2>
+    ${exhibitCardsHtml(it.exhibits)}
     ${photosHtml([].concat(it.photos || []), it.name)}
     <p class="desc">${it.desc}</p>
     <p class="muted">${SITE_NOTE}</p>
   `;
   openPanel();
-  flyTo(new THREE.Vector3(it.x + 30, 50, it.z + 55), new THREE.Vector3(it.x, 0, it.z));
+  if (fly) flyTo(new THREE.Vector3(it.x + 30, 50, it.z + 55), new THREE.Vector3(it.x, 0, it.z));
 }
 
 function openPanel() { panel.classList.add("open"); document.body.classList.add("panel-open"); }
@@ -2505,6 +2502,7 @@ function closePanel({ restore = true } = {}) {
     state.selected.label?.classList.remove("selected");
   }
   state.selected = null;
+  state.site = null;
   history.replaceState(null, "", location.pathname + location.search);
   if (restore) restoreView(); else returnView = null;
 }
@@ -2576,8 +2574,10 @@ search.addEventListener("input", () => {
   const byText = rooms.filter((r) => !byName.includes(r) && searchText(r).includes(q));
   const list = [...byName, ...byText].slice(0, 30);
   const sites = SITE_SEARCH.filter(({ text }) => text.includes(q)).slice(0, 6);
-  results.innerHTML = list.length || sites.length
-    ? list.map((r) => `<li><button data-room="${r.id}"><span class="dot" style="background:${CATEGORIES[r.cat].color}"></span>${r.name}<span class="fl">${r.floor}階${r.wing ? "・" + r.wing.name : ""}</span></button></li>`).join("")
+  const exs = EXHIBITS.filter((e) => norm(`${e.title} ${e.group} ${e.genre} ${e.desc}`).includes(q)).slice(0, 20);
+  results.innerHTML = list.length || sites.length || exs.length
+    ? exs.map((e) => `<li><button ${e.room ? `data-room="${e.room.id}"` : `data-site="${SITE_INFO.indexOf(e.site)}"`}><span class="dot" style="background:${genreColor(e.genre)}"></span>🎪 ${esc(e.title)}<span class="fl">${esc(placeName(e))}</span></button></li>`).join("")
+      + list.map((r) => `<li><button data-room="${r.id}"><span class="dot" style="background:${CATEGORIES[r.cat].color}"></span>${r.name}<span class="fl">${r.floor}階${r.wing ? "・" + r.wing.name : ""}</span></button></li>`).join("")
       + sites.map(({ it }, i) => `<li><button data-site="${SITE_INFO.indexOf(it)}"><span class="dot" style="background:#cfe3c4"></span>${it.name}<span class="fl">屋外</span></button></li>`).join("")
     : `<li class="none">見つかりませんでした</li>`;
   results.hidden = false;
@@ -2620,6 +2620,103 @@ document.addEventListener("click", (e) => { if (!e.target.closest(".search-box")
   document.addEventListener("click", (e) => { if (!box.hidden && !e.target.closest("#room-list, #rooms-btn")) setOpen(false); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !box.hidden) setOpen(false); });
 }
+
+// ---------- 文化祭の出し物（Google スプレッドシート または data/exhibits.csv から読む） ----------
+let EXHIBITS = [];
+const EX_SITES = SITE_INFO.filter((it) => !it.key || SITE[it.key]);
+const placeName = (e) => e.room ? `${e.room.floor}階 ${e.room.name}` : e.site ? `屋外・${e.site.name}` : (e.place || "場所未定");
+document.querySelector(".brand h1").textContent = FESTIVAL.title;
+document.querySelector(".brand .sub").textContent = FESTIVAL.subtitle;
+document.title = FESTIVAL.title;
+
+function exLabel(el, list, name) {
+  if (el.__orig === undefined) el.__orig = { cls: el.className, html: el.innerHTML };
+  el.className = el.__orig.cls;
+  el.innerHTML = el.__orig.html;
+  el.style.removeProperty("--g");
+  if (list?.length) {
+    el.classList.remove("staff", "vertical", "small");
+    el.classList.add("ex");
+    el.style.setProperty("--g", genreColor(list[0].genre));
+    el.innerHTML = `<span class="ex-name">${esc(name)}</span><span class="ex-title">${esc(list[0].title || list[0].group || "出し物")}${list.length > 1 ? ` ほか${list.length - 1}` : ""}</span>`;
+  }
+  el.__w = undefined; // 名前の大きさが変わったので、重なりの計算をやり直す
+  labelPrio.delete(el);
+}
+
+function applyExhibits(list) {
+  for (const r of ROOMS) r.exhibits = null;
+  for (const it of SITE_INFO) it.exhibits = null;
+  EXHIBITS = list.map((e) => {
+    const m = matchPlace(e.place, ROOMS, EX_SITES);
+    const o = { ...e, room: m?.room || null, site: m?.site || null };
+    if (o.room) (o.room.exhibits ||= []).push(o);
+    if (o.site) (o.site.exhibits ||= []).push(o);
+    return o;
+  });
+  for (const r of ROOMS) if (r.label) exLabel(r.label, r.exhibits, shortName(r));
+  for (const it of SITE_INFO) if (it.label) exLabel(it.label, it.exhibits, it.name);
+  for (const w of WINGS) {
+    if (!w.label) continue;
+    const n = EXHIBITS.filter((e) => e.room?.wing === w).length;
+    w.label.innerHTML = `${esc(w.name)}${n ? ` <span class="ex-count">🎪${n}</span>` : ""}`;
+    w.label.__w = undefined;
+  }
+  document.getElementById("ex-count").textContent = EXHIBITS.length ? EXHIBITS.length : "";
+  // 開いている紹介を新しい内容にする
+  if (panel.classList.contains("open")) {
+    if (state.selected) selectRoom(state.selected, { fly: false });
+    else if (state.site) showSite(state.site, { fly: false });
+  }
+  renderExList();
+  poke();
+}
+
+let exSig = "";
+async function refreshExhibits() {
+  const { list, error } = await loadExhibits();
+  const sig = JSON.stringify(list);
+  if (sig === exSig) return;
+  exSig = sig;
+  if (error) console.warn("出し物データ:", error);
+  applyExhibits(list);
+}
+
+// 出し物の一覧（上の「🎪 出し物」ボタン）
+const exDialog = document.getElementById("ex-dialog");
+let exGenre = "";
+function renderExList() {
+  const genres = [...new Set(EXHIBITS.map((e) => e.genre || "その他"))];
+  if (exGenre && !genres.includes(exGenre)) exGenre = "";
+  const chips = [`<button data-genre="" class="${exGenre ? "" : "active"}">すべて</button>`]
+    .concat(genres.map((g) => `<button data-genre="${esc(g)}" class="${g === exGenre ? "active" : ""}" style="--g:${genreColor(g)}">${esc(g)}</button>`)).join("");
+  const shown = EXHIBITS.filter((e) => !exGenre || (e.genre || "その他") === exGenre);
+  const groups = [["1階", (e) => e.room?.floor === 1], ["2階", (e) => e.room?.floor === 2], ["3階", (e) => e.room?.floor === 3], ["屋外", (e) => e.site], ["場所が未定・不明", (e) => !e.room && !e.site]];
+  const body = groups.map(([h, test]) => {
+    const items = shown.filter(test);
+    if (!items.length) return "";
+    return `<h3>${h}</h3><ul class="ex-list">${items.map((e) => `<li><button ${e.room ? `data-room="${e.room.id}"` : e.site ? `data-site="${SITE_INFO.indexOf(e.site)}"` : "disabled"}>
+      <span class="ex-genre" style="--g:${genreColor(e.genre)}">${esc(e.genre || "その他")}</span>
+      <b>${esc(e.title || "（出し物名未定）")}</b>
+      <span class="ex-sub">${esc(e.group)}${e.group ? "・" : ""}${esc(placeName(e))}${e.time ? `・🕒${esc(e.time.split("\n")[0])}` : ""}</span></button></li>`).join("")}</ul>`;
+  }).join("");
+  document.getElementById("ex-body").innerHTML = EXHIBITS.length
+    ? `<div class="ex-chips">${chips}</div>${body}`
+    : `<p class="muted">出し物の情報はまだありません。</p>`;
+}
+document.getElementById("ex-btn").addEventListener("click", () => { renderExList(); exDialog.showModal(); });
+exDialog.addEventListener("click", (e) => {
+  if (e.target === exDialog) { exDialog.close(); return; }
+  const t = e.target.closest("button");
+  if (!t) return;
+  if (t.dataset.genre !== undefined) { exGenre = t.dataset.genre; renderExList(); return; }
+  if (t.dataset.room || t.dataset.site !== undefined) {
+    exDialog.close();
+    if (ex.on) setExplore(false);
+    if (t.dataset.room) selectRoom(ROOM_BY_ID[t.dataset.room], { close: true });
+    else showSite(SITE_INFO[Number(t.dataset.site)]);
+  }
+});
 
 // ---------- ボタン類 ----------
 document.querySelectorAll(".floor-btn").forEach((b) => b.addEventListener("click", () => { closePanel({ restore: false }); setFloor(Number(b.dataset.floor)); }));
@@ -2834,7 +2931,7 @@ function declutter() {
       if (!el.__w) { el.__w = el.offsetWidth; el.__h = el.offsetHeight; }
       const x = ((_wp.x + 1) / 2) * W, y = ((1 - _wp.y) / 2) * H, hw = el.__w / 2, hh = el.__h / 2;
       let prio = labelPrio.get(el);
-      if (prio === undefined) { const r = ROOMS.find((q) => q.label === el); prio = r ? (r.grade ? 1e6 : 0) + r.w * r.d : el.classList.contains("site") ? 5e4 : 1e5; labelPrio.set(el, prio); } // 外の施設の名前は、棟の名前より後回し
+      if (prio === undefined) { const r = ROOMS.find((q) => q.label === el); prio = (r ? (r.grade ? 1e6 : 0) + r.w * r.d : el.classList.contains("site") ? 5e4 : 1e5) + (el.classList.contains("ex") ? 2e6 : 0); labelPrio.set(el, prio); } // 出し物のある場所の名前を先に出す // 外の施設の名前は、棟の名前より後回し
       if (el.classList.contains("selected")) prio = 1e9;
       items.push({ el, prio, left: x - hw, right: x + hw, top: y - hh, bottom: y + hh });
     });
@@ -3339,6 +3436,8 @@ setFloor(0);
 const m = location.hash.match(/room=([\w-]+)/);
 if (m && ROOM_BY_ID[m[1]]) selectRoom(ROOM_BY_ID[m[1]]);
 requestAnimationFrame(tick);
+refreshExhibits();
+setInterval(refreshExhibits, 5 * 60 * 1000); // 5分ごとに出し物データを読み直す（開きっぱなしの案内用の画面のため）
 document.getElementById("loading").remove();
 
 
