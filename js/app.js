@@ -2647,18 +2647,19 @@ search.addEventListener("input", () => {
   const sites = SITE_SEARCH.filter(({ text }) => text.includes(q)).slice(0, 6);
   const exs = EXHIBITS.filter((e) => norm(`${e.title} ${e.group} ${e.genre} ${e.desc}`).includes(q)).slice(0, 20);
   results.innerHTML = list.length || sites.length || exs.length
-    ? exs.map((e) => `<li><button ${e.room ? `data-room="${e.room.id}"` : `data-site="${SITE_INFO.indexOf(e.site)}"`}><span class="dot" style="background:${genreColor(e.genre)}"></span>🎪 ${esc(e.title)}<span class="fl">${esc(placeName(e))}</span></button></li>`).join("")
+    ? exs.map((e) => `<li><button ${e.room ? `data-room="${e.room.id}"` : e.tent ? `data-tent="${e.tent.tentNo}"` : `data-site="${SITE_INFO.indexOf(e.site)}"`}><span class="dot" style="background:${genreColor(e.genre)}"></span>🎪 ${esc(e.title)}<span class="fl">${esc(placeName(e))}</span></button></li>`).join("")
       + list.map((r) => `<li><button data-room="${r.id}"><span class="dot" style="background:${CATEGORIES[r.cat].color}"></span>${r.name}<span class="fl">${r.floor}階${r.wing ? "・" + r.wing.name : ""}</span></button></li>`).join("")
       + sites.map(({ it }, i) => `<li><button data-site="${SITE_INFO.indexOf(it)}"><span class="dot" style="background:#cfe3c4"></span>${it.name}<span class="fl">屋外</span></button></li>`).join("")
     : `<li class="none">見つかりませんでした</li>`;
   results.hidden = false;
 });
 results.addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-room], button[data-site]");
+  const b = e.target.closest("button[data-room], button[data-site], button[data-tent]");
   if (!b) return;
   results.hidden = true;
   search.value = "";
   search.blur();
+  if (b.dataset.tent) { showSite(TENTS[Number(b.dataset.tent) - 1]); return; }
   if (b.dataset.site !== undefined) { if (ex.on) setExplore(false); showSite(SITE_INFO[Number(b.dataset.site)]); return; }
   selectRoom(ROOM_BY_ID[b.dataset.room]);
 });
@@ -2697,9 +2698,15 @@ let EXHIBITS = [];
 // 押せる場所：出し物データがあるときは、出し物のある部屋だけ
 const tappable = (r) => { const q = r.kind === "part" ? r.parent : r; return !EXHIBITS.length || !!q.exhibits?.length; };
 const EX_SITES = SITE_INFO.filter((it) => !it.key || SITE[it.key]);
-const placeName = (e) => e.room ? `${e.room.floor}階 ${e.room.name}` : e.site ? `屋外・${e.alias ? `${e.alias}（${e.site.name}）` : e.site.name}` : (e.place || "場所未定");
+const placeName = (e) => e.tent ? `屋外・${e.tent.name}（1号館と2号館のあいだ）` : e.room ? `${e.room.floor}階 ${e.room.name}` : e.site ? `屋外・${e.alias ? `${e.alias}（${e.site.name}）` : e.site.name}` : (e.place || "場所未定");
 
 // 屋外テント（白い幌の運動会テント）：1号館と2号館のあいだに、北と南に3基ずつ。後ろ（校舎側）は青い幕
+// 置き場所（スマホの画面に丸をつけてもらった位置）：通路の両側に、間をあけて3基ずつ。植え込みと白い通路はよける
+// [東西の位置 x, 南北の位置 z, 奥行き, 後ろの向き（-1：北の1号館側、1：南の2号館側）]。番号は 1〜3 が北（西から）、4〜6 が南（西から）
+const TENT_SPOTS = [
+  [15.5, -3.0, 3.0, -1], [28.0, -4.6, 3.2, -1], [35.5, -4.6, 3.2, -1], // 北（1号館側）
+  [15.8, 3.55, 2.3, 1], [28.5, 5.6, 3.4, 1], [36.0, 5.6, 3.4, 1],      // 南（2号館側）
+];
 if (FESTIVAL.tents) {
   const g = new THREE.Group();
   const matCanvas = new THREE.MeshStandardMaterial({ color: 0xf6f5f0, roughness: 0.85, side: THREE.DoubleSide });
@@ -2728,15 +2735,13 @@ if (FESTIVAL.tents) {
     t.position.set(cx, Y0, cz);
     g.add(t);
   };
-  // 置き場所（スマホの画面に丸をつけてもらった位置）：通路の両側に、間をあけて3基ずつ。植え込みと白い通路はよける
-  // [東西の位置 x, 南北の位置 z, 奥行き, 後ろの向き（-1：北の1号館側、1：南の2号館側）]
-  for (const [x, z, d, back] of [
-    [15.5, -3.0, 3.0, -1], [28.0, -4.6, 3.2, -1], [35.5, -4.6, 3.2, -1], // 北（1号館側）
-    [15.8, 3.55, 2.3, 1], [28.5, 5.6, 3.4, 1], [36.0, 5.6, 3.4, 1],      // 南（2号館側）
-  ]) tent(x, z, 4.0, d, back);
+  for (const [x, z, d, back] of TENT_SPOTS) tent(x, z, 4.0, d, back);
   scene.add(g);
 }
-document.querySelector(".brand h1").textContent = FESTIVAL.title;
+{ // スマホでは題名の前半（祭りの名前）だけ出す
+  const [head, ...rest] = FESTIVAL.title.split(/\s+/);
+  document.querySelector(".brand h1").innerHTML = `<span class="h-main">${esc(head)}</span>${rest.length ? `<span class="h-rest"> ${esc(rest.join(" "))}</span>` : ""}`;
+}
 document.querySelector(".brand .sub").textContent = FESTIVAL.subtitle;
 document.title = FESTIVAL.title;
 
@@ -2750,10 +2755,45 @@ function exLabel(el, list, name) {
     el.classList.remove("staff", "vertical", "small");
     el.classList.add("ex");
     el.style.setProperty("--g", genreColor(list[0].genre));
-    el.innerHTML = `<span class="ex-name">${esc(name)}</span><span class="ex-title">${esc(list[0].title || list[0].group || "出し物")}${list.length > 1 ? ` ほか${list.length - 1}` : ""}</span>`;
+    // 同じ場所に出し物がいくつもあるときは、名前をならべて全部出す（同じ名前は1つに。4つをこえたら「ほか」）
+    const items = []; const seen = new Set();
+    for (const e of list) { const t = e.title || e.group || "出し物"; if (!seen.has(t)) { seen.add(t); items.push([t, genreColor(e.genre)]); } }
+    const many = items.length > 1;
+    el.classList.toggle("multi", many);
+    el.innerHTML = `<span class="ex-name">${esc(name)}</span>` + items.slice(0, 4).map(([t, c]) => `<span class="ex-title"${many ? ` style="--d:${c}"` : ""}>${esc(t)}</span>`).join("")
+      + (items.length > 4 ? `<span class="ex-more">ほか${items.length - 4}</span>` : "");
   }
   el.__w = undefined; // 名前の大きさが変わったので、重なりの計算をやり直す
   labelPrio.delete(el);
+}
+
+// 屋外テントごとの札：「場所」が「屋外テント」の出し物を、テントに1つずつ置く（「屋外テント3」のように番号を書くとそのテント）
+const TENTS = TENT_SPOTS.map(([x, z], i) => ({ name: `屋外テント${i + 1}`, x, z, desc: "1号館と2号館のあいだの屋外テントです。", photos: [], tentNo: i + 1 }));
+const tentLabels = new THREE.Group();
+scene.add(tentLabels);
+function placeTents() {
+  for (const t of TENTS) { t.exhibits = null; if (t.obj) { tentLabels.remove(t.obj); t.obj = null; t.label = null; } }
+  if (!FESTIVAL.tents) return;
+  const inTent = EXHIBITS.filter((e) => e.site && e.alias && /テント/.test(String(e.alias).normalize("NFKC")));
+  const free = [];
+  for (const e of inTent) {
+    const n = Number(String(e.place).normalize("NFKC").match(/テント\s*(\d)/)?.[1]);
+    const t = TENTS[n - 1];
+    if (t && !t.exhibits) { t.exhibits = [e]; e.tent = t; } else free.push(e);
+  }
+  for (const e of free) { const t = TENTS.find((x) => !x.exhibits); if (!t) break; t.exhibits = [e]; e.tent = t; } // 番号がないものは、あいているテントへ順に
+  for (const t of TENTS) {
+    if (!t.exhibits) continue;
+    const div = document.createElement("div");
+    div.className = "wing-label site tent";
+    div.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    div.addEventListener("click", (ev) => { ev.stopPropagation(); showSite(t); });
+    exLabel(div, t.exhibits, `テント${t.tentNo}`);
+    const obj = new CSS2DObject(div);
+    obj.position.set(t.x, 3.6, t.z);
+    tentLabels.add(obj);
+    t.obj = obj; t.label = div;
+  }
 }
 
 function applyExhibits(list) {
@@ -2761,13 +2801,18 @@ function applyExhibits(list) {
   for (const it of SITE_INFO) it.exhibits = null;
   EXHIBITS = list.map((e) => {
     const m = matchPlace(e.place, ROOMS, EX_SITES);
-    const o = { ...e, room: m?.room || null, site: m?.site || null };
+    const o = { ...e, room: m?.room || null, site: m?.site || null, alias: m?.alias || "" };
     if (o.room) (o.room.exhibits ||= []).push(o);
     if (o.site) (o.site.exhibits ||= []).push(o);
     return o;
   });
+  placeTents();
   for (const r of ROOMS) if (r.label) exLabel(r.label, r.exhibits, shortName(r));
-  for (const it of SITE_INFO) if (it.label) exLabel(it.label, it.exhibits, it.name);
+  for (const it of SITE_INFO) if (it.label) {
+    const own = it.exhibits?.filter((e) => !e.tent); // テントの出し物は、テントごとの札に出す
+    exLabel(it.label, own, it.name);
+    if (!own?.length && it.exhibits?.length) it.label.classList.remove("noex"); // 押すとテントの出し物を全部出す
+  }
   for (const w of WINGS) {
     if (!w.label) continue;
     const n = EXHIBITS.filter((e) => e.room?.wing === w).length;
@@ -2808,7 +2853,7 @@ function renderExList() {
   const body = groups.map(([h, test]) => {
     const items = shown.filter(test);
     if (!items.length) return "";
-    return `<h3>${h}</h3><ul class="ex-list">${items.map((e) => `<li><button ${e.room ? `data-room="${e.room.id}"` : e.site ? `data-site="${SITE_INFO.indexOf(e.site)}"` : "disabled"}>
+    return `<h3>${h}</h3><ul class="ex-list">${items.map((e) => `<li><button ${e.room ? `data-room="${e.room.id}"` : e.tent ? `data-tent="${e.tent.tentNo}"` : e.site ? `data-site="${SITE_INFO.indexOf(e.site)}"` : "disabled"}>
       <span class="ex-genre" style="--g:${genreColor(e.genre)}">${esc(e.genre || "その他")}</span>
       <b>${esc(e.title || "（出し物名未定）")}</b>
       <span class="ex-sub">${esc(e.group)}${e.group ? "・" : ""}${esc(placeName(e))}${e.time ? `・🕒${esc(e.time.split("\n")[0])}` : ""}</span></button></li>`).join("")}</ul>`;
@@ -2823,6 +2868,7 @@ exDialog.addEventListener("click", (e) => {
   const t = e.target.closest("button");
   if (!t) return;
   if (t.dataset.genre !== undefined) { exGenre = t.dataset.genre; renderExList(); return; }
+  if (t.dataset.tent) { exDialog.close(); showSite(TENTS[Number(t.dataset.tent) - 1]); return; }
   if (t.dataset.room || t.dataset.site !== undefined) {
     exDialog.close();
     if (ex.on) setExplore(false);
@@ -3026,7 +3072,7 @@ let lastDeclutter = 0;
 const labelPrio = new Map();
 const _wp = new THREE.Vector3();
 function declutter() {
-  const groups = state.floor === 0 ? [wingLabels, siteLabels] : [layers.labels[state.floor], siteLabels];
+  const groups = state.floor === 0 ? [wingLabels, siteLabels, tentLabels] : [layers.labels[state.floor], siteLabels, tentLabels];
   const cam = useCamera(), W = renderer.domElement.clientWidth, H = renderer.domElement.clientHeight;
   const items = [];
   for (const g of groups) {
@@ -3043,6 +3089,7 @@ function declutter() {
       _wp.project(cam);
       if (_wp.z > 1) return;
       if (!el.__w) { el.__w = el.offsetWidth; el.__h = el.offsetHeight; }
+      if (!el.__w) return; // 表示していない名前（小さくしたときに消したもの）は、場所をとらない
       const x = ((_wp.x + 1) / 2) * W, y = ((1 - _wp.y) / 2) * H, hw = el.__w / 2, hh = el.__h / 2;
       let prio = labelPrio.get(el);
       if (prio === undefined) { const r = ROOMS.find((q) => q.label === el); prio = (r ? (r.grade ? 1e6 : 0) + r.w * r.d : el.classList.contains("site") ? 5e4 : 1e5) + (el.classList.contains("ex") ? 2e6 : 0); labelPrio.set(el, prio); } // 出し物のある場所の名前を先に出す // 外の施設の名前は、棟の名前より後回し
@@ -3124,6 +3171,17 @@ function updateNav(now, cam) {
   }
   activeUntil = now + 200;
 }
+// 遠くから見ているときは、出し物の名前を小さく・短くして、たくさん出せるようにする
+let lblLevel = 0;
+function labelScale(cam) {
+  const d = cam === ortho ? 2.6 / Math.max(0.05, ortho.zoom) : persp.position.distanceTo(controls3d.target) / 40; // 1 ≒ 部屋に寄ったくらい
+  const lv = d > 2.0 ? 2 : d > 1.2 ? 1 : 0;
+  if (lv === lblLevel) return;
+  lblLevel = lv;
+  document.body.classList.toggle("lbl-mid", lv >= 1);
+  document.body.classList.toggle("lbl-far", lv === 2);
+  for (const el of document.querySelectorAll(".room-label, .wing-label")) el.__w = undefined; // 大きさが変わったので重なりを計算し直す
+}
 function tick(now) {
   if (anim) {
     const k = Math.min(1, (now - anim.t0) / anim.ms);
@@ -3148,6 +3206,7 @@ function tick(now) {
   if (!ex.on) (cam === ortho ? controls2d : controls3d).update();
   cam.updateMatrixWorld();
   const camMoved = cameraChanged(cam);
+  if (camMoved) labelScale(cam);
   if (camMoved || anim) {
     const dt = now - lastFrame;
     if (moving && dt > 0 && dt < 500) noteFrame(dt);

@@ -436,3 +436,32 @@ a.ghost { text-decoration: none; color: inherit; display: inline-flex; align-ite
 /* 出し物のない場所の名前は押せない（うすく） */
 .room-label.noex, .wing-label.noex { pointer-events: none; cursor: default; opacity: .6; }
 .wing-label.site.noex { opacity: .75; }
+
+/* 航空写真のボタンは使わない */
+#aerial-btn, #align-open, #align-panel, #aerial-credit { display: none !important; }
+/* 題名：スマホでは祭りの名前だけ */
+@media (max-width: 760px) { .brand h1 .h-rest { display: none; } }
+/* 同じ場所の出し物をならべる */
+.room-label.ex.multi .ex-title, .wing-label.ex.multi .ex-title { display: flex; align-items: center; gap: 4px; }
+.room-label.ex.multi .ex-title::before, .wing-label.ex.multi .ex-title::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--d); box-shadow: 0 0 0 1.5px #fff; }
+.room-label.ex.multi, .wing-label.ex.multi { align-items: flex-start; }
+.room-label.ex.multi .ex-name, .wing-label.ex.multi .ex-name { align-self: center; }
+.ex-more { font-size: 10px; font-weight: 700; opacity: .9; }
+.room-label.ex .ex-title, .wing-label.ex .ex-title { font-size: 12px; }
+/* 少し遠く：部屋の名前を消して、出し物の名前を小さく */
+body.lbl-mid .room-label.ex, body.lbl-mid .wing-label.ex { padding: 1px 6px; border-width: 1.5px; border-radius: 6px; gap: 0; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+body.lbl-mid .ex-name { display: none; }
+body.lbl-mid .room-label.ex .ex-title, body.lbl-mid .wing-label.ex .ex-title { font-size: 10.5px; max-width: 9em; }
+body.lbl-mid .room-label.noex { display: none; }
+/* もっと遠く：さらに小さく短く */
+body.lbl-far .room-label.ex .ex-title, body.lbl-far .wing-label.ex .ex-title { font-size: 9px; max-width: 6.5em; }
+body.lbl-far .room-label.ex, body.lbl-far .wing-label.ex { padding: 0 4px; border-width: 1px; }
+body.lbl-far .wing-label.site.noex { font-size: 10px; padding: 2px 7px; }
+body.lbl-mid .wing-label.site.noex { font-size: 11px; padding: 3px 8px; }
+body.lbl-far .wing-label.site.noex { font-size: 9px; padding: 1px 6px; opacity: .65; }
+body.lbl-far .room-label.ex.multi .ex-title::before, body.lbl-far .wing-label.ex.multi .ex-title::before { width: 5px; height: 5px; }
+/* もっと遠く：1つだけの出し物の名前は、細く2行まで折り返す（となりの教室と重なりにくく） */
+body.lbl-far .room-label.ex:not(.multi) .ex-title, body.lbl-far .wing-label.ex:not(.multi) .ex-title {
+  white-space: normal; max-width: 5.4em; line-height: 1.12; text-align: center; word-break: break-all;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: clip;
+}

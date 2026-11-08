@@ -127,7 +127,8 @@ export function matchPlace(text, rooms, sites = []) {
   const byId = list.find((r) => r.id === raw);
   if (byId) return { room: byId };
   // 別名（「屋外テント」など。festival-config.js の placeAliases）
-  const alias = Object.entries(FESTIVAL.placeAliases || {}).find(([k]) => norm(k) === norm(raw));
+  const base = raw.normalize("NFKC").replace(/\s*\d+$/, ""); // 「屋外テント3」→「屋外テント」
+  const alias = Object.entries(FESTIVAL.placeAliases || {}).find(([k]) => norm(k) === norm(raw) || norm(k) === norm(base));
   if (alias) { const m = matchPlace(alias[1], rooms, sites); return m && { ...m, alias: raw }; }
   let q = norm(raw);
   // 「2階 化学実験室」「3F 音楽室」のように、はじめに階を書いてもよい
