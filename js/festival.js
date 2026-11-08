@@ -43,8 +43,8 @@ const COLS = [
   ["title", /出し物|企画|タイトル|名前/],
   ["genre", /ジャンル|種類|分類/],
   ["time", /時間|日時|日程/],
-  ["desc", /説明|紹介|内容/],
   ["image", /画像|写真/],
+  ["desc", /説明|紹介|内容|PR|ＰＲ/],
   ["hide", /非表示|かくす|隠す/],
 ];
 
@@ -60,26 +60,51 @@ export function rowsToExhibits(rows) {
     const o = { line: n + 2 };
     for (const [k] of COLS) o[k] = idx[k] !== undefined ? (r[idx[k]] || "").trim() : "";
     return o;
-  }).filter((o) => (o.place || o.title) && !/^(true|1|○|〇|はい|yes|x|×)$/i.test(o.hide));
+  }).filter((o) => (o.place || o.title || o.group) && !/^(true|1|○|〇|はい|yes|x|×)$/i.test(o.hide));
 }
 
-// 出し物データを読む。シートが読めないときは data/exhibits.csv を読む
+async function fetchCsv(u) {
+  const res = await fetch(u, { cache: "no-store" });
+  if (!res.ok) throw new Error(`読み込めませんでした（${res.status}）`);
+  const text = await res.text();
+  if (/^\s*</.test(text)) throw new Error("スプレッドシートが公開されていないようです（共有を「リンクを知っている全員」にしてください）");
+  return rowsToExhibits(parseCsv(text));
+}
+
+// 団体名をくらべるための形（空白・記号のちがいを気にしない）
+export const groupKey = (s) => norm(s).replace(/[()（）「」『』・,、.。!！?？]/g, "");
+
+// フォームの回答を、出し物の表に「団体名」でかさねる。
+// 同じ団体が何回も送ったときは、あとの回答が勝つ（書いた項目だけ上書き）。場所とジャンルは表のまま
+export function mergeForms(list, forms) {
+  const byKey = new Map(list.map((e) => [groupKey(e.group), e]));
+  const unmatched = [];
+  for (const f of forms) {
+    const e = byKey.get(groupKey(f.group));
+    if (!f.group || !e) { unmatched.push(f); continue; }
+    for (const k of ["title", "time", "desc", "image"]) if (f[k]) e[k] = f[k];
+    e.fromForm = (e.fromForm || 0) + 1;
+  }
+  return unmatched;
+}
+
+// 出し物データを読む。シートが読めないときは data/exhibits.csv を読む。
+// フォームの回答のシートがあれば、それもかさねる
 export async function loadExhibits() {
   const url = sheetCsvUrl(FESTIVAL.sheetUrl);
   const tries = url ? [["sheet", url], ["local", LOCAL_CSV]] : [["local", LOCAL_CSV]];
-  let error = "";
-  for (const [source, u] of tries) {
-    try {
-      const res = await fetch(u, { cache: "no-store" });
-      if (!res.ok) throw new Error(`読み込めませんでした（${res.status}）`);
-      const text = await res.text();
-      if (/^\s*</.test(text)) throw new Error("スプレッドシートが公開されていないようです（共有を「リンクを知っている全員」にしてください）");
-      return { list: rowsToExhibits(parseCsv(text)), source, error };
-    } catch (e) {
-      error = error || String(e.message || e);
-    }
+  let error = "", list = [], source = "none";
+  for (const [src, u] of tries) {
+    try { list = await fetchCsv(u); source = src; break; }
+    catch (e) { error = error || String(e.message || e); }
   }
-  return { list: [], source: "none", error };
+  let forms = [], formError = "", unmatched = [];
+  const furl = sheetCsvUrl(FESTIVAL.formSheetUrl);
+  if (furl) {
+    try { forms = await fetchCsv(furl); unmatched = mergeForms(list, forms); }
+    catch (e) { formError = String(e.message || e); }
+  }
+  return { list, source, error, forms, formError, unmatched };
 }
 
 // ---------- 場所の名前から、部屋（または屋外の場所）を探す ----------
@@ -142,11 +167,21 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 export { esc };
 
 // 画像の URL（Google ドライブの共有リンクは、画像として表示できる形に変える）
+// 「画像」の欄には何枚でも書ける（改行・カンマ・空白で区切る。フォームで複数アップロードしたときもこの形）
+export const imageList = (s) => String(s || "").split(/[\s,、]+/).map(imageUrl).filter(Boolean);
+
 export function imageUrl(u) {
   if (!u) return "";
   const m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]+)/);
   if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w1000`;
   return /^(https?:)?\/\/|^images\//.test(u) ? u : "";
+}
+
+// 写真：1枚目は大きく、2枚目からは小さく。押すと画面いっぱいに大きく見られる（地図の部屋の写真と同じしくみ）
+function photos(list, name) {
+  if (!list.length) return "";
+  const img = (src, i, cls) => `<img class="${cls}" src="${esc(src)}" data-i="${i}" alt="${esc(name)}の写真" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`;
+  return `<div class="photos" data-srcs="${esc(list.join("|"))}">${img(list[0], 0, "room-photo ex-img")}${list.length > 1 ? `<div class="thumbs">${list.slice(1).map((src, i) => img(src, i + 1, "thumb")).join("")}</div>` : ""}</div>`;
 }
 
 // パネル（紹介の欄）に出す出し物のカード
@@ -158,7 +193,7 @@ export function exhibitCardsHtml(list) {
       <h3>🎪 ${esc(e.title || "（出し物名未定）")}</h3>
       ${e.group ? `<p class="ex-group">${esc(e.group)}</p>` : ""}
       ${e.time ? `<p class="ex-time">🕒 ${esc(e.time)}</p>` : ""}
-      ${imageUrl(e.image) ? `<img class="ex-img" src="${esc(imageUrl(e.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}
+      ${photos(imageList(e.image), e.title)}
       ${e.desc ? `<p class="ex-desc">${esc(e.desc).replace(/\n/g, "<br>")}</p>` : ""}
     </div>`).join("")}</div>`;
 }

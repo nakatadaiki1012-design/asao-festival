@@ -53,6 +53,19 @@
     </section>
 
     <section>
+      <h2>📮 紹介文と写真の受付フォーム</h2>
+      <p>各団体には <b>Google フォーム</b> で紹介文と写真を送ってもらえます。送られた内容は、「団体名」が同じ行に自動ではまり、地図に出ます（同じ団体が何回送っても、いちばん新しい回答が使われます）。</p>
+      <div class="row" id="form-links"></div>
+      <div id="form-status" class="status" hidden></div>
+      <details style="margin-top:10px">
+        <summary>フォームの「団体名」の選択肢にする一覧（コピーして貼りつけ）</summary>
+        <p class="muted">フォームの「団体名」の質問を「プルダウン」にして、1つ目の選択肢の欄にこの一覧をまとめて貼ると、全部が選択肢になります。名前の書きまちがいがなくなるので確実です。</p>
+        <textarea id="group-names" rows="8" style="width:100%;font-size:14px" readonly></textarea>
+        <button class="btn" id="copy-groups">📋 一覧をコピー</button>
+      </details>
+    </section>
+
+    <section>
       <h2>② 書きこんだ内容のチェック</h2>
       <p class="muted">「場所」がマップのどこになったかを確認できます。<span class="ng">❌</span> や <span class="warn">⚠️</span> が出たら、下の「④ 場所の一覧」の名前をそのまま「場所」の列に書いてください。</p>
       <div class="row" style="margin-bottom:8px"><button class="btn" id="reload">🔄 読み直す</button><a class="btn" href="./" target="_blank">🗺️ 案内マップを開く</a></div>
@@ -95,13 +108,40 @@
           <li>スプレッドシートの URL（ブラウザのアドレス欄）をコピーして、GitHub の <code>js/festival-config.js</code> の <code>sheetUrl: ""</code> の <code>""</code> の中に貼って保存する。</li>
           <li>このページを開き直して、「② チェック」にスプレッドシートの内容が出れば完了です。</li>
         </ol>
+      </details>
+    </section>
+
+    <section>
+      <details>
+        <summary>フォームの準備（紹介文と写真を各団体に送ってもらうとき。最初に1回だけ）</summary>
+        <ol>
+          <li>出し物の表のスプレッドシートを開き、「ツール → フォームを作成」で新しいフォームを作る（回答が同じスプレッドシートの新しいシート（タブ）にたまるようになります）。</li>
+          <li>次の質問を作る（質問の名前に、この言葉が入っていればOK）：
+            <ul>
+              <li><b>団体名</b>（プルダウン・必須）… 選択肢は上の「団体名の選択肢にする一覧」をコピーして貼る</li>
+              <li><b>紹介文</b>（段落）</li>
+              <li><b>画像</b>（ファイルのアップロード・「画像」だけ許可・最大5枚くらい）</li>
+              <li>（なくてもOK）<b>出し物名</b>・<b>時間</b> … 書いたときだけ表の内容を上書きします</li>
+            </ul>
+          </li>
+          <li>Google ドライブで、フォームの写真がたまるフォルダ（「（フォーム名）（File responses）」）を右クリック →「共有」→ <b>「リンクを知っている全員」・「閲覧者」</b> にする（地図に写真を出すために必要です）。</li>
+          <li>スプレッドシートの <b>回答のシート（タブ）</b> を開いて、アドレス欄の URL を <code>js/festival-config.js</code> の <code>formSheetUrl</code> に、フォームの「送信 → 🔗」の URL を <code>formUrl</code> に貼って保存する。</li>
+          <li>テストで1回送ってみて、上の「② チェック」の「フォーム」の列が「✅ 受付済」になれば完了です。</li>
+        </ol>
+        <p class="muted">※ ファイルのアップロードの質問があるフォームは、答える人が Google アカウントにログインする必要があります（学校のアカウントで大丈夫です）。<br>※ 送られた内容はすぐ地図に出ます。出したくない出し物は、出し物の表の「非表示」の列に ○ を書くと隠せます。</p>
+      </details>
+    </section>
+
+    <section>
+      <details>
+        <summary>（メモ）スプレッドシートを使わないとき</summary>
         <p class="muted">スプレッドシートを使わないときは、このリポジトリの <code>data/exhibits.csv</code> を GitHub 上で直接書きかえても反映されます。</p>
       </details>
     </section>
   </main>
 
   <script type="module">
-    import { FESTIVAL, loadExhibits, matchPlace, genreColor, esc, LOCAL_CSV } from "./js/festival.js";
+    import { FESTIVAL, loadExhibits, matchPlace, genreColor, esc, LOCAL_CSV, imageList } from "./js/festival.js";
     import { baseRooms } from "./js/rooms.js";
     import { SITE_INFO, SITE } from "./js/info.js";
 
@@ -118,7 +158,7 @@
 
     async function check() {
       $("status").textContent = "読み込み中…";
-      const { list, source, error } = await loadExhibits();
+      const { list, source, error, forms, formError, unmatched } = await loadExhibits();
       const from = source === "sheet" ? "Google スプレッドシート" : source === "local" ? `このリポジトリの ${LOCAL_CSV}` : "（読み込めませんでした）";
       const rows = list.map((e) => ({ e, m: matchPlace(e.place, rooms, sites) }));
       const nOk = rows.filter((r) => r.m && !r.m.warn).length, nWarn = rows.filter((r) => r.m?.warn).length, nNg = rows.filter((r) => !r.m).length;
@@ -126,7 +166,7 @@
       $("status").innerHTML = `読み込み先：<b>${from}</b>　／　出し物 <b>${list.length}</b> 件（<span class="ok">✅ ${nOk}</span>　<span class="warn">⚠️ ${nWarn}</span>　<span class="ng">❌ ${nNg}</span>）`
         + (error && FESTIVAL.sheetUrl && source !== "sheet" ? `<br>スプレッドシートを読めませんでした：${esc(error)}` : "")
         + `<br><span class="muted">${new Date().toLocaleTimeString("ja-JP")} に確認。スプレッドシートを書きかえてから反映まで数分かかることがあります。</span>`;
-      $("check").innerHTML = `<tr><th>行</th><th>場所（書いた内容）</th><th>マップの場所</th><th>出し物名</th><th>団体名</th><th>ジャンル</th><th>時間</th></tr>` + rows.map(({ e, m }) => `
+      $("check").innerHTML = `<tr><th>行</th><th>場所（書いた内容）</th><th>マップの場所</th><th>出し物名</th><th>団体名</th><th>ジャンル</th><th>時間</th><th>フォーム</th></tr>` + rows.map(({ e, m }) => `
         <tr>
           <td>${e.line}</td>
           <td>${esc(e.place) || '<span class="ng">（空）</span>'}</td>
@@ -135,8 +175,24 @@
           <td>${esc(e.title)}</td><td>${esc(e.group)}</td>
           <td>${e.genre ? `<span class="genre" style="background:${genreColor(e.genre)}">${esc(e.genre)}</span>` : ""}</td>
           <td style="white-space:pre-line">${esc(e.time)}</td>
+          <td>${e.fromForm ? `<span class="ok">✅ 受付済</span>` : `<span class="muted">まだ</span>`}${imageList(e.image).length ? `<div class="muted">📷 ${imageList(e.image).length}枚</div>` : ""}</td>
         </tr>`).join("");
+      // フォーム
+      $("group-names").value = [...new Set(list.map((e) => e.group).filter(Boolean))].join("\n");
+      if (FESTIVAL.formSheetUrl) {
+        const fs = $("form-status");
+        fs.hidden = false;
+        fs.className = "status" + (formError || unmatched.length ? " ng" : "");
+        fs.innerHTML = formError ? `フォームの回答を読めませんでした：${esc(formError)}`
+          : `フォームの回答 <b>${forms.length}</b> 件（受付済の団体 <b>${list.filter((e) => e.fromForm).length}</b> ／ ${list.length}）`
+            + (unmatched.length ? `<br>⚠️ 表にない団体名の回答が ${unmatched.length} 件あります（地図には出ません）：${unmatched.map((f) => `「${esc(f.group || "（空）")}」`).join("、")}<br><span class="muted">→ 出し物の表の「団体名」と同じ名前にしてください。</span>` : "");
+      }
     }
+    $("form-links").innerHTML = FESTIVAL.formUrl
+      ? `<a class="btn primary" href="${esc(FESTIVAL.formUrl)}" target="_blank" rel="noopener">📮 フォームを開く</a> <button class="btn" id="copy-form">🔗 フォームのリンクをコピー（各団体に配る）</button>`
+      : `<span class="muted">まだフォームがつながっていません。下の「フォームの準備」をしてください。</span>`;
+    $("copy-form")?.addEventListener("click", (e) => navigator.clipboard?.writeText(FESTIVAL.formUrl).then(() => { e.target.textContent = "✅ コピーしました"; }));
+    $("copy-groups").addEventListener("click", (e) => navigator.clipboard?.writeText($("group-names").value).then(() => { e.target.textContent = "✅ コピーしました"; }));
     $("reload").addEventListener("click", check);
     check();
 
