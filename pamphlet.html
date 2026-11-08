@@ -104,7 +104,7 @@
     .cover-circle::after { content: ""; position: absolute; inset: 22px; border-radius: 50%; border: 1px dashed var(--line); }
     .cover-info .school { font-family: var(--mincho); font-size: 15px; letter-spacing: .2em; color: var(--ink-soft); margin: 0 0 6px; }
     .cover-info .dates { font-family: var(--latin); font-size: clamp(26px, 3.6vw, 40px); line-height: 1.2; margin: 0; letter-spacing: .04em; }
-    .cover-info .hours { font-family: var(--latin); font-size: 18px; letter-spacing: .15em; color: var(--ink-soft); margin: 4px 0 0; }
+    .cover-info .hours { white-space: pre-line; line-height: 1.6; font-family: var(--latin); font-size: 18px; letter-spacing: .15em; color: var(--ink-soft); margin: 4px 0 0; }
     .toc { margin-top: clamp(30px, 6vh, 64px); border-top: 1px solid var(--ink); }
     .toc .toc-h { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .3em; padding: 8px 0; color: var(--ink-soft); }
     .toc a { display: grid; grid-template-columns: 54px 1fr auto; align-items: baseline; gap: 12px; padding: 18px 0; border-bottom: 1px solid var(--line); text-decoration: none; transition: padding-left .4s, color .3s; }
@@ -137,6 +137,10 @@
 
     /* ---------- ステージ（タイムテーブル） ---------- */
     .venue { margin-bottom: 56px; }
+    .day { display: flex; align-items: baseline; gap: 18px; margin: 10px 0 30px; }
+    .day-no { font-family: var(--latin); font-style: italic; font-size: clamp(34px, 5vw, 52px); color: var(--shu); line-height: 1; }
+    .day-date { font-family: var(--latin); font-size: clamp(20px, 2.6vw, 28px); letter-spacing: .2em; }
+    .day ~ .day { margin-top: 80px; padding-top: 40px; border-top: 1px dashed var(--line); }
     .venue h3 { font-family: var(--mincho); font-size: 20px; letter-spacing: .2em; margin: 0 0 6px; display: flex; align-items: center; gap: 14px; }
     .venue h3::after { content: ""; flex: 1; height: 1px; background: var(--line); }
     .tt { list-style: none; margin: 0; padding: 0; }
@@ -160,7 +164,7 @@
     .grid { columns: 3 280px; column-gap: clamp(18px, 3vw, 40px); }
     .card { break-inside: avoid; margin: 0 0 clamp(26px, 4vw, 44px); cursor: pointer; }
     .card .ph { position: relative; overflow: hidden; background: var(--paper-2); }
-    .card .ph img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; transition: transform 1.2s cubic-bezier(.2,.7,.2,1); filter: saturate(.92); }
+    .card .ph img { display: block; width: 100%; height: auto; transition: transform 1.2s cubic-bezier(.2,.7,.2,1); filter: saturate(.92); }
     .card:hover .ph img { transform: scale(1.05); }
     .card .ph.type { aspect-ratio: 4 / 3; display: grid; place-items: center; }
     .card .ph.type b { font-family: var(--mincho); font-weight: 800; font-size: 110px; line-height: 1; color: var(--g); opacity: .85; }
@@ -170,7 +174,7 @@
     .card h3 { font-family: var(--mincho); font-weight: 800; font-size: 22px; line-height: 1.4; margin: 4px 0 2px; }
     .card .grp { font-size: 14px; color: var(--ink-soft); }
     .card .desc { font-size: 14px; margin: 8px 0 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    .card:nth-child(3n+2) .ph img, .card:nth-child(3n+2) .ph.type { aspect-ratio: 3 / 4; }
+    .card:nth-child(3n+2) .ph.type { aspect-ratio: 3 / 4; }
 
     /* ---------- 飲食（メニュー） ---------- */
     .menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 0 clamp(26px, 5vw, 70px); }
@@ -182,7 +186,7 @@
     .dish .grp { font-size: 14px; color: var(--ink-soft); margin-top: 2px; }
     .dish .time { font-family: var(--latin); font-size: 16px; letter-spacing: .06em; color: var(--ink-soft); }
     .dish .desc { font-size: 14px; margin: 6px 0 0; }
-    .dish .thumb { width: 92px; height: 92px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 4px var(--paper), 0 0 0 5px var(--line); }
+    .dish .thumb { width: 84px; height: 118px; object-fit: cover; transform: rotate(2deg); box-shadow: 0 0 0 4px var(--paper), 0 0 0 5px var(--line); }
     .dish:hover h3 { color: var(--shu); }
 
     /* ---------- ページのおわり（前後のページ） ---------- */
@@ -359,6 +363,10 @@
     const isStage = (e) => /ステージ|演奏|ライブ|発表|演劇|ダンス/.test(e.genre);
     const isFood = (e) => /飲食|食べ|フード|カフェ|喫茶/.test(e.genre);
     const minutes = (t) => { const m = String(t || "").normalize("NFKC").match(/(\d{1,2}):(\d{2})/); return m ? Number(m[1]) * 60 + Number(m[2]) : 9999; };
+    // 「9/11（金）13:20〜」の日にち。並べるときのため "09-11" の形にする
+    const dayKey = (t) => { const m = String(t || "").normalize("NFKC").match(/(\d{1,2})\/(\d{1,2})(?:\s*\((.)\))?/); return m ? `${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}${m[3] || ""}` : ""; };
+    const WEEK = { 日: "SUN", 月: "MON", 火: "TUE", 水: "WED", 木: "THU", 金: "FRI", 土: "SAT" };
+    const dayLabel = (k) => { const [, mo, d, w] = k.match(/(\d+)-(\d+)(.?)/); return `${Number(mo)}.${Number(d)}${w ? " " + (WEEK[w] || w) : ""}`; };
     const times = (t) => [...String(t || "").normalize("NFKC").matchAll(/(\d{1,2}):(\d{2})/g)].map((m) => `${m[1]}:${m[2]}`);
     const placeOf = (e) => e.room ? `${e.room.floor}F ${e.room.name.replace(/ 教室$/, "")}` : e.site ? e.site.name : (e.place || "");
     const mapHref = (e) => e.room ? `./#room=${e.room.id}` : e.site ? `./#site=${SITE_INFO.indexOf(e.site)}` : "./";
@@ -370,17 +378,22 @@
       $("c-exhibit").textContent = other.length ? `${other.length} exhibits` : "";
       $("c-food").textContent = food.length ? `${food.length} shops` : "";
 
-      // ステージ：会場ごとに、はじまる時間の順
-      const venues = new Map();
-      for (const e of stage.sort((a, b) => minutes(a.time) - minutes(b.time))) {
-        const v = placeOf(e) || "会場未定";
+      // ステージ：日ごと → 会場ごとに、はじまる時間の順
+      const days = new Map();
+      for (const e of stage.sort((a, b) => dayKey(a.time).localeCompare(dayKey(b.time)) || minutes(a.time) - minutes(b.time))) {
+        const d = dayKey(e.time);
+        if (!days.has(d)) days.set(d, new Map());
+        const venues = days.get(d), v = placeOf(e) || "会場未定";
         if (!venues.has(v)) venues.set(v, []);
         venues.get(v).push(e);
       }
-      $("stage-body").innerHTML = venues.size ? [...venues].map(([v, list]) => `
+      const dayList = [...days.keys()];
+      $("stage-body").innerHTML = days.size ? dayList.map((d, di) => `
+        ${d ? `<div class="day reveal"><span class="day-no">Day ${di + 1}</span><span class="day-date">${esc(dayLabel(d))}</span></div>` : ""}
+        ${[...days.get(d)].map(([v, list]) => `
         <div class="venue reveal"><h3>${esc(v)}</h3><ul class="tt">${list.map((e) => { const t = times(e.time); return `
           <li class="reveal"><div class="time">${t.length ? `<b>${t[0]}</b>${t[1] ? `<span>— ${t[1]}</span>` : ""}` : `<span>${esc(e.time || "時間未定")}</span>`}</div>
-          <div class="body" data-i="${ALL.indexOf(e)}"><p class="ttl">${esc(e.title)}</p><div class="grp">${esc(e.group)}</div>${e.desc ? `<p class="desc">${esc(e.desc)}</p>` : ""}</div></li>`; }).join("")}</ul></div>`).join("")
+          <div class="body" data-i="${ALL.indexOf(e)}"><p class="ttl">${esc(e.title)}</p><div class="grp">${esc(e.group)}</div>${e.desc ? `<p class="desc">${esc(e.desc)}</p>` : ""}</div></li>`; }).join("")}</ul></div>`).join("")}`).join("")
         : `<p class="empty">プログラムは準備中です。</p>`;
 
       // 展示：ジャンルでしぼりこみ

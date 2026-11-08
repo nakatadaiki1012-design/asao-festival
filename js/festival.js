@@ -77,13 +77,17 @@ export const groupKey = (s) => norm(s).replace(/[()（）「」『』・,、.。
 // フォームの回答を、出し物の表に「団体名」でかさねる。
 // 同じ団体が何回も送ったときは、あとの回答が勝つ（書いた項目だけ上書き）。場所とジャンルは表のまま
 export function mergeForms(list, forms) {
-  const byKey = new Map(list.map((e) => [groupKey(e.group), e]));
+  const byKey = new Map(); // 同じ団体が何行もあるとき（ステージの1日目・2日目など）は、全部の行にかさねる
+  for (const e of list) { const k = groupKey(e.group); if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(e); }
   const unmatched = [];
   for (const f of forms) {
-    const e = byKey.get(groupKey(f.group));
-    if (!f.group || !e) { unmatched.push(f); continue; }
-    for (const k of ["title", "time", "desc", "image"]) if (f[k]) e[k] = f[k];
-    e.fromForm = (e.fromForm || 0) + 1;
+    const es = byKey.get(groupKey(f.group));
+    if (!f.group || !es) { unmatched.push(f); continue; }
+    for (const e of es) {
+      for (const k of ["desc", "image"]) if (f[k]) e[k] = f[k];
+      if (es.length === 1) for (const k of ["title", "time"]) if (f[k]) e[k] = f[k]; // 時間・名前は1行だけのときに上書き
+      e.fromForm = (e.fromForm || 0) + 1;
+    }
   }
   return unmatched;
 }
