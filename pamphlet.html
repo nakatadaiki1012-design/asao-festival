@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>鴻志祭 2026 パンフレット</title>
+  <meta name="description" content="神奈川県立麻生高等学校 文化祭のパンフレット。ステージプログラム・展示企画・飲食団体を紹介します。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #f4efe4; --paper-2: #ebe3d3; --ink: #1c1915; --ink-soft: #5d554a; --line: #cbbfa8;
+      --shu: #c8432b;   /* 朱色 */
+      --gold: #a8854a;
+      --mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+      --gothic: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      --latin: "Cormorant Garamond", "Times New Roman", serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); font-family: var(--gothic); background: var(--paper);
+      -webkit-font-smoothing: antialiased; line-height: 1.8;
+    }
+    /* 紙の質感（細かいざらつき） */
+    body::before {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .35; mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .28 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    a { color: inherit; }
+    button { font: inherit; color: inherit; }
+
+    /* ================= オープニング ================= */
+    #opening {
+      position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; cursor: pointer;
+      overflow: hidden;
+    }
+    #opening .half { position: absolute; left: 0; right: 0; height: 50.5%; background: #15120f; transition: transform 1.1s cubic-bezier(.77,0,.18,1); }
+    #opening .half.top { top: 0; }
+    #opening .half.bottom { bottom: 0; }
+    #opening.open .half.top { transform: translateY(-100%); }
+    #opening.open .half.bottom { transform: translateY(100%); }
+    #opening .logo { position: relative; z-index: 2; text-align: center; color: #f4efe4; transition: opacity .6s, transform 1.1s cubic-bezier(.77,0,.18,1); }
+    #opening.open .logo { opacity: 0; transform: scale(1.08); }
+    .op-kanji { display: flex; gap: .08em; justify-content: center; font-family: var(--mincho); font-weight: 800; font-size: clamp(64px, 17vw, 168px); line-height: 1; letter-spacing: .04em; }
+    .op-kanji span { display: inline-block; opacity: 0; clip-path: inset(-20% -20% 120% -20%); filter: blur(10px); animation: ink 1.1s cubic-bezier(.2,.7,.2,1) forwards; }
+    .op-kanji span:nth-child(1) { animation-delay: .25s; }
+    .op-kanji span:nth-child(2) { animation-delay: .5s; }
+    .op-kanji span:nth-child(3) { animation-delay: .75s; }
+    @keyframes ink { 0% { opacity: 0; clip-path: inset(-20% -20% 120% -20%); filter: blur(10px); transform: translateY(-.08em); } 60% { opacity: 1; filter: blur(1px); } 100% { opacity: 1; clip-path: inset(-20% -20% -20% -20%); filter: blur(0); transform: none; } }
+    .op-rule { width: 0; height: 1px; background: var(--shu); margin: 26px auto 18px; animation: rule .9s 1.5s cubic-bezier(.6,0,.2,1) forwards; }
+    @keyframes rule { to { width: min(420px, 70vw); } }
+    .op-year { font-family: var(--latin); font-weight: 500; font-size: clamp(22px, 5vw, 36px); letter-spacing: .6em; padding-left: .6em; opacity: 0; animation: rise .9s 1.9s ease forwards; }
+    .op-en { font-family: var(--latin); font-style: italic; font-size: clamp(12px, 2.6vw, 15px); letter-spacing: .3em; color: #b9ad97; margin-top: 8px; opacity: 0; animation: rise .9s 2.2s ease forwards; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .op-seal {
+      position: absolute; right: -8px; top: -18px; width: clamp(44px, 9vw, 64px); aspect-ratio: 1; border-radius: 50%;
+      background: var(--shu); color: #fff; font-family: var(--mincho); font-weight: 800; font-size: clamp(13px, 2.6vw, 18px);
+      display: grid; place-items: center; line-height: 1.05; writing-mode: vertical-rl; opacity: 0;
+      animation: stamp .5s 1.35s cubic-bezier(.3,1.6,.5,1) forwards; box-shadow: 0 0 0 3px rgba(200,67,43,.25);
+    }
+    @keyframes stamp { from { opacity: 0; transform: scale(2.2) rotate(-25deg); } to { opacity: .95; transform: scale(1) rotate(-8deg); } }
+    .op-skip { position: absolute; bottom: 26px; left: 0; right: 0; text-align: center; z-index: 2; color: #8d826f; font-size: 12px; letter-spacing: .2em; opacity: 0; animation: rise .6s 1s forwards; }
+    #opening.open .op-skip { opacity: 0 !important; transition: opacity .3s; }
+
+    /* ================= 柱（上の見出し・目次） ================= */
+    .masthead {
+      position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 18px; justify-content: space-between;
+      padding: 14px clamp(16px, 4vw, 48px); background: rgba(244, 239, 228, .9); backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--line);
+    }
+    .masthead .mark { font-family: var(--mincho); font-weight: 800; font-size: 18px; letter-spacing: .12em; text-decoration: none; white-space: nowrap; }
+    .masthead .mark small { font-family: var(--latin); font-weight: 500; font-size: 15px; letter-spacing: .2em; margin-left: 6px; color: var(--shu); }
+    .masthead nav { display: flex; gap: clamp(10px, 3vw, 34px); align-items: baseline; overflow-x: auto; scrollbar-width: none; }
+    .masthead nav a { text-decoration: none; font-family: var(--mincho); font-size: 15px; white-space: nowrap; padding: 2px 0; border-bottom: 1px solid transparent; transition: border-color .3s, color .3s; }
+    .masthead nav a .no { font-family: var(--latin); font-style: italic; color: var(--gold); margin-right: 6px; font-size: 14px; }
+    .masthead nav a:hover, .masthead nav a.current { border-color: var(--shu); color: var(--shu); }
+    .masthead .map { font-size: 13px; letter-spacing: .08em; text-decoration: none; border: 1px solid var(--ink); padding: 4px 12px; white-space: nowrap; transition: background .3s, color .3s; }
+    .masthead .map:hover { background: var(--ink); color: var(--paper); }
+    @media (max-width: 720px) {
+      .masthead { flex-wrap: wrap; row-gap: 6px; padding-top: 10px; padding-bottom: 8px; }
+      .masthead nav { order: 3; width: 100%; justify-content: space-between; }
+      .masthead nav a { font-size: 14px; }
+    }
+
+    /* ================= ページ ================= */
+    main { position: relative; z-index: 1; }
+    .page { scroll-margin-top: 400px; display: none; padding: clamp(28px, 6vw, 80px) clamp(18px, 6vw, 80px) 40px; max-width: 1180px; margin: 0 auto; min-height: calc(100vh - 60px); }
+    .page.show { display: block; animation: turn .8s cubic-bezier(.2,.7,.2,1); }
+    @keyframes turn { from { opacity: 0; transform: translateY(18px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .9s ease, transform .9s cubic-bezier(.2,.7,.2,1); }
+    .reveal.in { opacity: 1; transform: none; }
+
+    /* ---------- 表紙 ---------- */
+    .cover { display: none; }
+    .cover.show { display: grid; grid-template-columns: 1.1fr 1fr; gap: clamp(24px, 6vw, 90px); align-items: center; }
+    .cover-title { position: relative; display: flex; gap: clamp(14px, 3vw, 34px); justify-content: center; align-items: flex-start; min-height: 70vh; }
+    .cover-title h1 { writing-mode: vertical-rl; margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(88px, 16vw, 190px); line-height: 1; letter-spacing: .08em; }
+    .cover-title .yr { writing-mode: vertical-rl; font-family: var(--latin); font-size: clamp(24px, 4vw, 40px); letter-spacing: .4em; color: var(--shu); margin-top: .3em; }
+    .cover-title .catch { writing-mode: vertical-rl; font-family: var(--mincho); font-size: clamp(16px, 2.2vw, 22px); letter-spacing: .35em; color: var(--ink-soft); margin-top: 3.2em; }
+    .cover-title .seal { position: absolute; bottom: 4%; left: 8%; width: 74px; aspect-ratio: 1; border-radius: 50%; background: var(--shu); color: #fff; display: grid; place-items: center; font-family: var(--mincho); font-weight: 800; writing-mode: vertical-rl; font-size: 17px; transform: rotate(-8deg); opacity: .92; }
+    .cover-circle { position: absolute; z-index: -1; width: min(52vw, 520px); aspect-ratio: 1; border-radius: 50%; border: 1px solid var(--line); top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    .cover-circle::after { content: ""; position: absolute; inset: 22px; border-radius: 50%; border: 1px dashed var(--line); }
+    .cover-info .school { font-family: var(--mincho); font-size: 15px; letter-spacing: .2em; color: var(--ink-soft); margin: 0 0 6px; }
+    .cover-info .dates { font-family: var(--latin); font-size: clamp(26px, 3.6vw, 40px); line-height: 1.2; margin: 0; letter-spacing: .04em; }
+    .cover-info .hours { font-family: var(--latin); font-size: 18px; letter-spacing: .15em; color: var(--ink-soft); margin: 4px 0 0; }
+    .toc { margin-top: clamp(30px, 6vh, 64px); border-top: 1px solid var(--ink); }
+    .toc .toc-h { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .3em; padding: 8px 0; color: var(--ink-soft); }
+    .toc a { display: grid; grid-template-columns: 54px 1fr auto; align-items: baseline; gap: 12px; padding: 18px 0; border-bottom: 1px solid var(--line); text-decoration: none; transition: padding-left .4s, color .3s; }
+    .toc a:hover { padding-left: 12px; color: var(--shu); }
+    .toc .n { font-family: var(--latin); font-style: italic; font-size: 30px; color: var(--gold); line-height: 1; }
+    .toc .t { font-family: var(--mincho); font-weight: 600; font-size: clamp(20px, 2.4vw, 26px); }
+    .toc .t small { display: block; font-family: var(--latin); font-style: italic; font-weight: 500; font-size: 14px; letter-spacing: .15em; color: var(--ink-soft); }
+    .toc .c { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
+    body { overflow-x: hidden; }
+    .cover.show > * { min-width: 0; }
+    @media (max-width: 860px) {
+      .cover.show { grid-template-columns: minmax(0, 1fr); }
+      .cover-title h1 { font-size: clamp(80px, 26vw, 150px); }
+      .cover-info .dates { font-size: clamp(22px, 6.4vw, 32px); }
+      .cover-title { min-height: auto; padding: 10px 0 20px; }
+      .cover-circle { width: 86vw; }
+    }
+
+    /* ---------- 章のはじめ ---------- */
+    .chap-head { display: grid; grid-template-columns: auto 1fr; gap: clamp(14px, 3vw, 36px); align-items: end; border-bottom: 1px solid var(--ink); padding-bottom: 22px; margin-bottom: clamp(26px, 5vw, 54px); }
+    .chap-no { font-family: var(--latin); font-weight: 500; font-size: clamp(90px, 15vw, 170px); line-height: .78; color: transparent; -webkit-text-stroke: 1px var(--ink); }
+    .chap-head h2 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(30px, 5vw, 54px); line-height: 1.2; letter-spacing: .06em; }
+    .chap-head .en { font-family: var(--latin); font-style: italic; letter-spacing: .25em; color: var(--shu); font-size: clamp(13px, 1.6vw, 17px); }
+    .chap-head .lead { margin: 10px 0 0; color: var(--ink-soft); font-family: var(--mincho); }
+    @media (max-width: 600px) {
+      .chap-head { grid-template-columns: 1fr; gap: 0; }
+      .chap-no { font-size: 84px; margin-bottom: 8px; }
+    }
+    .empty { font-family: var(--mincho); color: var(--ink-soft); padding: 40px 0; text-align: center; letter-spacing: .1em; }
+
+    /* ---------- ステージ（タイムテーブル） ---------- */
+    .venue { margin-bottom: 56px; }
+    .venue h3 { font-family: var(--mincho); font-size: 20px; letter-spacing: .2em; margin: 0 0 6px; display: flex; align-items: center; gap: 14px; }
+    .venue h3::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+    .tt { list-style: none; margin: 0; padding: 0; }
+    .tt li { display: grid; grid-template-columns: clamp(92px, 16vw, 150px) 1fr; border-bottom: 1px solid var(--line); }
+    .tt .time { padding: 22px 0; font-family: var(--latin); line-height: 1; position: relative; }
+    .tt .time b { display: block; font-weight: 600; font-size: clamp(30px, 4.4vw, 46px); }
+    .tt .time span { font-size: 15px; color: var(--ink-soft); letter-spacing: .08em; }
+    .tt .body { padding: 22px 0 22px clamp(14px, 3vw, 34px); border-left: 1px solid var(--line); position: relative; cursor: pointer; transition: background .3s; }
+    .tt .body::before { content: ""; position: absolute; left: -5px; top: 34px; width: 9px; height: 9px; border-radius: 50%; background: var(--paper); border: 1px solid var(--shu); transition: background .3s; }
+    .tt .body:hover { background: rgba(255,255,255,.35); }
+    .tt .body:hover::before { background: var(--shu); }
+    .tt .ttl { font-family: var(--mincho); font-weight: 800; font-size: clamp(20px, 2.6vw, 28px); line-height: 1.35; margin: 0; }
+    .tt .grp { font-size: 14px; color: var(--ink-soft); letter-spacing: .08em; margin-top: 4px; }
+    .tt .desc { font-size: 14px; margin: 8px 0 0; color: var(--ink-soft); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    /* ---------- 展示（誌面のグリッド） ---------- */
+    .filters { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: -18px 0 34px; font-family: var(--mincho); }
+    .filters button { background: none; border: none; padding: 2px 0; cursor: pointer; border-bottom: 1px solid transparent; color: var(--ink-soft); letter-spacing: .08em; }
+    .filters button.on { color: var(--ink); border-color: var(--shu); }
+    .filters button sup { font-family: var(--latin); color: var(--gold); margin-left: 3px; }
+    .grid { columns: 3 280px; column-gap: clamp(18px, 3vw, 40px); }
+    .card { break-inside: avoid; margin: 0 0 clamp(26px, 4vw, 44px); cursor: pointer; }
+    .card .ph { position: relative; overflow: hidden; background: var(--paper-2); }
+    .card .ph img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; transition: transform 1.2s cubic-bezier(.2,.7,.2,1); filter: saturate(.92); }
+    .card:hover .ph img { transform: scale(1.05); }
+    .card .ph.type { aspect-ratio: 4 / 3; display: grid; place-items: center; }
+    .card .ph.type b { font-family: var(--mincho); font-weight: 800; font-size: 110px; line-height: 1; color: var(--g); opacity: .85; }
+    .card .ph.type::after { content: ""; position: absolute; inset: 12px; border: 1px solid color-mix(in srgb, var(--g) 45%, transparent); }
+    .card .meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 12px; letter-spacing: .12em; color: var(--ink-soft); }
+    .card .meta .gn { color: var(--g); font-weight: 700; }
+    .card h3 { font-family: var(--mincho); font-weight: 800; font-size: 22px; line-height: 1.4; margin: 4px 0 2px; }
+    .card .grp { font-size: 14px; color: var(--ink-soft); }
+    .card .desc { font-size: 14px; margin: 8px 0 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .card:nth-child(3n+2) .ph img, .card:nth-child(3n+2) .ph.type { aspect-ratio: 3 / 4; }
+
+    /* ---------- 飲食（メニュー） ---------- */
+    .menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 0 clamp(26px, 5vw, 70px); }
+    .dish { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start; padding: 24px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+    .dish .row { display: flex; align-items: baseline; gap: 10px; }
+    .dish h3 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(20px, 2.4vw, 25px); line-height: 1.35; }
+    .dish .dots { flex: 1; border-bottom: 2px dotted var(--line); transform: translateY(-5px); min-width: 20px; }
+    .dish .where { font-family: var(--mincho); font-size: 15px; white-space: nowrap; color: var(--shu); }
+    .dish .grp { font-size: 14px; color: var(--ink-soft); margin-top: 2px; }
+    .dish .time { font-family: var(--latin); font-size: 16px; letter-spacing: .06em; color: var(--ink-soft); }
+    .dish .desc { font-size: 14px; margin: 6px 0 0; }
+    .dish .thumb { width: 92px; height: 92px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 4px var(--paper), 0 0 0 5px var(--line); }
+    .dish:hover h3 { color: var(--shu); }
+
+    /* ---------- ページのおわり（前後のページ） ---------- */
+    .folio { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; margin-top: 70px; padding-top: 20px; border-top: 1px solid var(--ink); font-family: var(--mincho); }
+    .folio a { text-decoration: none; font-size: 15px; transition: color .3s; }
+    .folio a:hover { color: var(--shu); }
+    .folio a small { display: block; font-family: var(--latin); font-style: italic; color: var(--ink-soft); font-size: 13px; letter-spacing: .15em; }
+    .folio .next { text-align: right; }
+    .folio .pg { font-family: var(--latin); letter-spacing: .3em; color: var(--ink-soft); }
+    footer { position: relative; z-index: 1; text-align: center; font-size: 12px; color: var(--ink-soft); padding: 26px 16px 40px; letter-spacing: .1em; }
+    footer button { background: none; border: none; text-decoration: underline; cursor: pointer; color: inherit; font-size: 12px; }
+
+    /* ================= 1つの企画のページ ================= */
+    #detail { position: fixed; inset: 0; z-index: 50; display: none; background: rgba(28, 25, 21, .55); backdrop-filter: blur(3px); overflow-y: auto; padding: clamp(0px, 4vw, 50px) clamp(0px, 4vw, 50px); }
+    #detail.show { display: block; animation: fade .4s; }
+    @keyframes fade { from { opacity: 0; } }
+    #detail .sheet { position: relative; max-width: 880px; margin: 0 auto; background: var(--paper); padding: clamp(24px, 5vw, 56px); animation: turn .6s cubic-bezier(.2,.7,.2,1); min-height: 100%; }
+    @media (min-width: 700px) { #detail .sheet { min-height: auto; box-shadow: 0 30px 80px rgba(0,0,0,.35); } }
+    #detail .close { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 30px; line-height: 1; cursor: pointer; font-family: var(--latin); }
+    #detail .gn { font-size: 12px; letter-spacing: .3em; color: var(--g); font-weight: 700; }
+    #detail h2 { font-family: var(--mincho); font-weight: 800; font-size: clamp(28px, 5vw, 44px); line-height: 1.3; margin: 6px 0 4px; }
+    #detail .grp { font-family: var(--mincho); color: var(--ink-soft); letter-spacing: .1em; }
+    #detail .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 22px 0; padding: 16px 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--line); font-size: 15px; }
+    #detail .facts dt { font-family: var(--latin); font-style: italic; color: var(--gold); letter-spacing: .15em; }
+    #detail .facts dd { margin: 0; white-space: pre-line; }
+    #detail .gallery img.main { width: 100%; max-height: 62vh; object-fit: contain; background: var(--paper-2); display: block; }
+    #detail .gallery .thumbs { display: flex; gap: 8px; margin-top: 8px; overflow-x: auto; }
+    #detail .gallery .thumbs img { width: 76px; height: 76px; object-fit: cover; cursor: pointer; opacity: .55; transition: opacity .3s; }
+    #detail .gallery .thumbs img.on { opacity: 1; outline: 2px solid var(--shu); outline-offset: 2px; }
+    #detail .text { font-size: 16px; line-height: 2; white-space: pre-line; }
+    #detail .tomap { display: inline-block; margin-top: 24px; padding: 12px 26px; background: var(--ink); color: var(--paper); text-decoration: none; letter-spacing: .15em; font-size: 14px; transition: background .3s; }
+    #detail .tomap:hover { background: var(--shu); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="opening" aria-hidden="true">
+    <div class="half top"></div><div class="half bottom"></div>
+    <div class="logo">
+      <div style="position:relative;display:inline-block">
+        <div class="op-kanji" id="op-kanji"></div>
+        <div class="op-seal">麻生</div>
+      </div>
+      <div class="op-rule"></div>
+      <div class="op-year" id="op-year"></div>
+      <div class="op-en">ASAO HIGH SCHOOL FESTIVAL</div>
+    </div>
+    <div class="op-skip">TAP TO SKIP</div>
+  </div>
+
+  <header class="masthead">
+    <a class="mark" href="#cover" id="mark"></a>
+    <nav>
+      <a href="#stage" data-to="stage"><span class="no">01</span>ステージ</a>
+      <a href="#exhibit" data-to="exhibit"><span class="no">02</span>展示企画</a>
+      <a href="#food" data-to="food"><span class="no">03</span>飲食団体</a>
+    </nav>
+    <a class="map" href="./">校内マップ</a>
+  </header>
+
+  <main>
+    <section class="page cover" id="cover">
+      <div class="cover-title">
+        <div class="cover-circle"></div>
+        <p class="catch" id="cv-catch"></p>
+        <span class="yr" id="cv-year"></span>
+        <h1 id="cv-name"></h1>
+        <div class="seal">麻生</div>
+      </div>
+      <div class="cover-info">
+        <p class="school">神奈川県立麻生高等学校</p>
+        <p class="dates" id="cv-dates"></p>
+        <p class="hours" id="cv-hours"></p>
+        <div class="toc">
+          <div class="toc-h"><span>目次</span><span>CONTENTS</span></div>
+          <a href="#stage"><span class="n">01</span><span class="t">ステージプログラム<small>Stage Program</small></span><span class="c" id="c-stage"></span></a>
+          <a href="#exhibit"><span class="n">02</span><span class="t">展示企画<small>Exhibitions</small></span><span class="c" id="c-exhibit"></span></a>
+          <a href="#food"><span class="n">03</span><span class="t">飲食団体<small>Food &amp; Drink</small></span><span class="c" id="c-food"></span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="stage">
+      <div class="chap-head"><div class="chap-no">01</div><div><div class="en">STAGE PROGRAM</div><h2>ステージプログラム</h2><p class="lead">音と光と、熱気のなかへ。各会場のタイムテーブルです。</p></div></div>
+      <div id="stage-body"></div>
+      <div class="folio"><a href="#cover"><small>Prev</small>← 表紙</a><span class="pg">— 01 —</span><a class="next" href="#exhibit"><small>Next</small>展示企画 →</a></div>
+    </section>
+
+    <section class="page" id="exhibit">
+      <div class="chap-head"><div class="chap-no">02</div><div><div class="en">EXHIBITIONS</div><h2>展示企画</h2><p class="lead">教室ごとに広がる、それぞれの世界。</p></div></div>
+      <div class="filters" id="filters"></div>
+      <div class="grid" id="exhibit-body"></div>
+      <div class="folio"><a href="#stage"><small>Prev</small>← ステージ</a><span class="pg">— 02 —</span><a class="next" href="#food"><small>Next</small>飲食団体 →</a></div>
+    </section>
+
+    <section class="page" id="food">
+      <div class="chap-head"><div class="chap-no">03</div><div><div class="en">FOOD &amp; DRINK</div><h2>飲食団体</h2><p class="lead">歩きつかれたら、ひと休み。今年のお品書きです。</p></div></div>
+      <div class="menu" id="food-body"></div>
+      <div class="folio"><a href="#exhibit"><small>Prev</small>← 展示企画</a><span class="pg">— 03 —</span><a class="next" href="#cover"><small>Back to</small>表紙 →</a></div>
+    </section>
+  </main>
+
+  <footer>
+    <span id="ft-name"></span>　／　<a href="./">校内マップ</a>　／　<button id="replay">オープニングをもう一度</button>
+  </footer>
+
+  <div id="detail" role="dialog" aria-modal="true"><div class="sheet" id="sheet"></div></div>
+
+  <script type="module">
+    import { FESTIVAL, loadExhibits, matchPlace, genreColor, imageList, esc } from "./js/festival.js";
+    import { baseRooms } from "./js/rooms.js";
+    import { SITE_INFO, SITE } from "./js/info.js";
+
+    const $ = (id) => document.getElementById(id);
+    const name = FESTIVAL.name || "文化祭", year = FESTIVAL.year || "";
+
+    // ---------- 表紙・見出しの文字 ----------
+    document.title = `${name} ${year} パンフレット`;
+    $("mark").innerHTML = `${esc(name)}<small>${esc(year)}</small>`;
+    $("cv-name").textContent = name;
+    $("cv-year").textContent = year;
+    $("cv-catch").textContent = FESTIVAL.catchphrase || "";
+    $("cv-dates").textContent = FESTIVAL.dates || "";
+    $("cv-hours").textContent = FESTIVAL.hours || "";
+    $("ft-name").textContent = `${name} ${year}`;
+    $("op-kanji").innerHTML = [...name].map((c) => `<span>${esc(c)}</span>`).join("");
+    $("op-year").textContent = year;
+
+    // ---------- オープニング ----------
+    const op = $("opening");
+    let opTimer;
+    function endOpening() {
+      if (op.classList.contains("open")) return;
+      clearTimeout(opTimer);
+      op.classList.add("open");
+      setTimeout(() => { op.style.display = "none"; reveal(); }, 1150);
+    }
+    function playOpening() {
+      op.style.display = "";
+      op.classList.remove("open");
+      // アニメーションを最初から
+      op.querySelectorAll("*").forEach((el) => { el.style.animation = "none"; void el.offsetWidth; el.style.animation = ""; });
+      opTimer = setTimeout(endOpening, 3600);
+    }
+    op.addEventListener("click", endOpening);
+    document.addEventListener("keydown", (e) => { if (op.style.display !== "none" && (e.key === "Escape" || e.key === "Enter" || e.key === " ")) endOpening(); });
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let seen = false;
+    try { seen = sessionStorage.getItem("op-seen") === "1"; sessionStorage.setItem("op-seen", "1"); } catch { /* 保存できなくても動く */ }
+    if (reduce || seen || location.hash.length > 1) { op.style.display = "none"; } else playOpening();
+    $("replay").addEventListener("click", () => { scrollTo(0, 0); playOpening(); });
+
+    // ---------- ページの切りかえ（#stage など） ----------
+    const PAGES = ["cover", "stage", "exhibit", "food"];
+    function show() {
+      const id = PAGES.includes(location.hash.slice(1)) ? location.hash.slice(1) : "cover";
+      for (const p of PAGES) $(p).classList.toggle("show", p === id);
+      document.querySelectorAll(".masthead nav a").forEach((a) => a.classList.toggle("current", a.dataset.to === id));
+      scrollTo({ top: 0, behavior: "instant" });
+      reveal();
+    }
+    addEventListener("hashchange", show);
+
+    // 画面に入ったものから、ふわっと出す
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -6% 0px" });
+    function reveal() { document.querySelectorAll(".page.show .reveal:not(.in)").forEach((el, i) => { el.style.transitionDelay = `${Math.min(i, 6) * 70}ms`; io.observe(el); }); }
+
+    // ---------- データ ----------
+    const rooms = baseRooms();
+    const sites = SITE_INFO.filter((it) => !it.key || SITE[it.key]);
+    const isStage = (e) => /ステージ|演奏|ライブ|発表|演劇|ダンス/.test(e.genre);
+    const isFood = (e) => /飲食|食べ|フード|カフェ|喫茶/.test(e.genre);
+    const minutes = (t) => { const m = String(t || "").normalize("NFKC").match(/(\d{1,2}):(\d{2})/); return m ? Number(m[1]) * 60 + Number(m[2]) : 9999; };
+    const times = (t) => [...String(t || "").normalize("NFKC").matchAll(/(\d{1,2}):(\d{2})/g)].map((m) => `${m[1]}:${m[2]}`);
+    const placeOf = (e) => e.room ? `${e.room.floor}F ${e.room.name.replace(/ 教室$/, "")}` : e.site ? e.site.name : (e.place || "");
+    const mapHref = (e) => e.room ? `./#room=${e.room.id}` : e.site ? `./#site=${SITE_INFO.indexOf(e.site)}` : "./";
+    let ALL = [];
+
+    function render() {
+      const stage = ALL.filter(isStage), food = ALL.filter(isFood), other = ALL.filter((e) => !isStage(e) && !isFood(e));
+      $("c-stage").textContent = stage.length ? `${stage.length} programs` : "";
+      $("c-exhibit").textContent = other.length ? `${other.length} exhibits` : "";
+      $("c-food").textContent = food.length ? `${food.length} shops` : "";
+
+      // ステージ：会場ごとに、はじまる時間の順
+      const venues = new Map();
+      for (const e of stage.sort((a, b) => minutes(a.time) - minutes(b.time))) {
+        const v = placeOf(e) || "会場未定";
+        if (!venues.has(v)) venues.set(v, []);
+        venues.get(v).push(e);
+      }
+      $("stage-body").innerHTML = venues.size ? [...venues].map(([v, list]) => `
+        <div class="venue reveal"><h3>${esc(v)}</h3><ul class="tt">${list.map((e) => { const t = times(e.time); return `
+          <li class="reveal"><div class="time">${t.length ? `<b>${t[0]}</b>${t[1] ? `<span>— ${t[1]}</span>` : ""}` : `<span>${esc(e.time || "時間未定")}</span>`}</div>
+          <div class="body" data-i="${ALL.indexOf(e)}"><p class="ttl">${esc(e.title)}</p><div class="grp">${esc(e.group)}</div>${e.desc ? `<p class="desc">${esc(e.desc)}</p>` : ""}</div></li>`; }).join("")}</ul></div>`).join("")
+        : `<p class="empty">プログラムは準備中です。</p>`;
+
+      // 展示：ジャンルでしぼりこみ
+      const genres = [...new Set(other.map((e) => e.genre || "その他"))];
+      if (filter && !genres.includes(filter)) filter = "";
+      $("filters").innerHTML = other.length > 1 ? [["", "すべて", other.length], ...genres.map((g) => [g, g, other.filter((e) => (e.genre || "その他") === g).length])]
+        .map(([k, l, n]) => `<button data-f="${esc(k)}" class="${k === filter ? "on" : ""}">${esc(l)}<sup>${n}</sup></button>`).join("") : "";
+      const shown = other.filter((e) => !filter || (e.genre || "その他") === filter);
+      $("exhibit-body").innerHTML = shown.length ? shown.map((e) => { const img = imageList(e.image)[0]; return `
+        <article class="card reveal" data-i="${ALL.indexOf(e)}" style="--g:${genreColor(e.genre)}">
+          ${img ? `<div class="ph"><img src="${esc(img)}" alt="" loading="lazy" referrerpolicy="no-referrer"></div>` : `<div class="ph type"><b>${esc([...(e.title || e.group || "展").replace(/^（例）/, "")][0])}</b></div>`}
+          <div class="meta"><span class="gn">${esc(e.genre || "その他")}</span><span>${esc(placeOf(e))}</span></div>
+          <h3>${esc(e.title)}</h3><div class="grp">${esc(e.group)}</div>
+          ${e.desc ? `<p class="desc">${esc(e.desc)}</p>` : ""}
+        </article>`; }).join("") : `<p class="empty">展示企画は準備中です。</p>`;
+
+      // 飲食：お品書き
+      $("food-body").innerHTML = food.length ? food.map((e) => { const img = imageList(e.image)[0]; return `
+        <div class="dish reveal" data-i="${ALL.indexOf(e)}">
+          <div>
+            <div class="row"><h3>${esc(e.title)}</h3><span class="dots"></span><span class="where">${esc(placeOf(e))}</span></div>
+            <div class="grp">${esc(e.group)}</div>
+            ${e.time ? `<div class="time">${esc(e.time.split("\n")[0])}</div>` : ""}
+            ${e.desc ? `<p class="desc">${esc(e.desc)}</p>` : ""}
+          </div>
+          ${img ? `<img class="thumb" src="${esc(img)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
+        </div>`; }).join("") : `<p class="empty">飲食団体は準備中です。</p>`;
+      reveal();
+    }
+    let filter = "";
+    $("filters").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (b) { filter = b.dataset.f; render(); } });
+
+    // ---------- 1つの企画のページ ----------
+    const detail = $("detail");
+    function openDetail(e) {
+      const imgs = imageList(e.image);
+      $("sheet").style.setProperty("--g", genreColor(e.genre));
+      $("sheet").innerHTML = `
+        <button class="close" aria-label="閉じる">×</button>
+        <div class="gn">${esc(e.genre || "その他")}</div>
+        <h2>${esc(e.title)}</h2>
+        <div class="grp">${esc(e.group)}</div>
+        ${imgs.length ? `<div class="gallery" style="margin-top:22px"><img class="main" src="${esc(imgs[0])}" alt="" referrerpolicy="no-referrer">${imgs.length > 1 ? `<div class="thumbs">${imgs.map((u, i) => `<img src="${esc(u)}" data-src="${esc(u)}" class="${i ? "" : "on"}" alt="" referrerpolicy="no-referrer">`).join("")}</div>` : ""}</div>` : ""}
+        <dl class="facts">
+          ${placeOf(e) ? `<dt>Place</dt><dd>${esc(placeOf(e))}</dd>` : ""}
+          ${e.time ? `<dt>Time</dt><dd>${esc(e.time)}</dd>` : ""}
+        </dl>
+        ${e.desc ? `<p class="text">${esc(e.desc)}</p>` : ""}
+        ${e.room || e.site ? `<a class="tomap" href="${mapHref(e)}">校内マップで場所を見る →</a>` : ""}`;
+      detail.classList.add("show");
+      document.body.style.overflow = "hidden";
+      detail.scrollTop = 0;
+    }
+    function closeDetail() { detail.classList.remove("show"); document.body.style.overflow = ""; }
+    detail.addEventListener("click", (ev) => {
+      if (ev.target === detail || ev.target.closest(".close")) return closeDetail();
+      const t = ev.target.closest(".thumbs img");
+      if (t) { detail.querySelector(".main").src = t.dataset.src; detail.querySelectorAll(".thumbs img").forEach((x) => x.classList.toggle("on", x === t)); }
+    });
+    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && detail.classList.contains("show")) closeDetail(); });
+    document.querySelector("main").addEventListener("click", (ev) => {
+      const el = ev.target.closest("[data-i]");
+      if (el) openDetail(ALL[Number(el.dataset.i)]);
+    });
+
+    show();
+    let sig = "";
+    async function refresh() {
+      const { list } = await loadExhibits();
+      const s = JSON.stringify(list);
+      if (s === sig) return;
+      sig = s;
+      ALL = list.map((e) => { const m = matchPlace(e.place, rooms, sites); return { ...e, room: m?.room || null, site: m?.site || null }; });
+      render();
+    }
+    refresh();
+    setInterval(refresh, 5 * 60 * 1000);
+  </script>
+</body>
+</html>

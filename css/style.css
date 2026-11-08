@@ -422,3 +422,4 @@ body.exploring #stick { display: none; }
 .ex-list button:hover { background: var(--accent-soft); }
 .ex-list button:disabled { cursor: default; opacity: 0.7; }
 .ex-list .ex-sub { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+a.ghost { text-decoration: none; color: inherit; display: inline-flex; align-items: center; }

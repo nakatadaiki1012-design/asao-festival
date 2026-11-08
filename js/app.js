@@ -3435,6 +3435,8 @@ bakeStatic(gymRoof);
 setFloor(0);
 const m = location.hash.match(/room=([\w-]+)/);
 if (m && ROOM_BY_ID[m[1]]) selectRoom(ROOM_BY_ID[m[1]]);
+const ms = location.hash.match(/site=(\d+)/); // パンフレットから屋外の場所へ
+if (ms && SITE_INFO[Number(ms[1])]) showSite(SITE_INFO[Number(ms[1])]);
 requestAnimationFrame(tick);
 refreshExhibits();
 setInterval(refreshExhibits, 5 * 60 * 1000); // 5分ごとに出し物データを読み直す（開きっぱなしの案内用の画面のため）
