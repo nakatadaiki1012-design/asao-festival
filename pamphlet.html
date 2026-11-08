@@ -79,6 +79,15 @@
     .op-year span { display: inline-block; opacity: 0; transform: rotateX(90deg) translateY(10px); transform-origin: 50% 100%; }
     #opening.p3 .op-year span { animation: flip .7s cubic-bezier(.2,.8,.2,1.2) forwards; }
     @keyframes flip { to { opacity: 1; transform: none; } }
+    /* テーマの文字（粒の形をとるための見えない文字と、ロゴの下に残るテーマ） */
+    .op-theme-measure { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: .06em; white-space: nowrap;
+      font-family: var(--mincho); font-weight: 800; font-size: clamp(54px, 15vw, 150px); line-height: 1.15; visibility: hidden; pointer-events: none; }
+    .op-theme { margin-top: 18px; display: flex; justify-content: center; align-items: center; gap: 14px; font-family: var(--mincho); font-weight: 600;
+      font-size: clamp(16px, 3.4vw, 24px); letter-spacing: .5em; padding-left: .5em; color: #9cc8ff; opacity: 0; text-shadow: 0 0 18px rgba(110, 170, 255, .55); }
+    .op-theme::before, .op-theme::after { content: ""; width: clamp(18px, 6vw, 46px); height: 1px; background: linear-gradient(90deg, transparent, #9cc8ff); }
+    .op-theme::after { transform: scaleX(-1); }
+    #opening.p3 .op-theme { animation: themeIn 1.1s .25s cubic-bezier(.2,.7,.2,1) forwards; }
+    @keyframes themeIn { from { opacity: 0; letter-spacing: 1.2em; filter: blur(6px); } to { opacity: 1; letter-spacing: .5em; filter: none; } }
     .op-en { font-family: var(--latin); font-style: italic; font-size: clamp(11px, 2.4vw, 15px); letter-spacing: .1em; color: #b9ad97; margin-top: 10px; opacity: 0; }
     #opening.p3 .op-en { animation: spread 1.4s .5s cubic-bezier(.2,.7,.2,1) forwards; }
     @keyframes spread { to { opacity: 1; letter-spacing: .38em; } }
@@ -107,6 +116,11 @@
     .finale .bg-photo { top: -20%; bottom: -20%; z-index: 0; opacity: .85; filter: saturate(1.15) contrast(1.15) brightness(1.15); mix-blend-mode: screen; background-size: cover; background-position: 50% 25%;
       -webkit-mask-image: radial-gradient(70% 80% at 50% 40%, #000 35%, transparent 100%); mask-image: radial-gradient(70% 80% at 50% 40%, #000 35%, transparent 100%); }
     .finale > div:not(.bg-photo) { position: relative; z-index: 1; }
+    .theme-tag { display: inline-flex; align-items: center; gap: 12px; font-family: var(--mincho); font-weight: 800; letter-spacing: .35em; color: #2b5fa8; }
+    .theme-tag small { font-family: var(--latin); font-style: italic; font-weight: 500; letter-spacing: .25em; font-size: .55em; color: var(--ink-soft); }
+    .cover-info .theme-tag { font-size: clamp(26px, 3.4vw, 38px); margin: 0 0 18px; }
+    .cover-info .theme-tag::after { content: ""; width: 60px; height: 1px; background: #2b5fa8; opacity: .6; }
+    .finale .theme-tag { color: #9cc8ff; font-size: clamp(18px, 3vw, 28px); margin-top: 18px; text-shadow: 0 0 20px rgba(110,170,255,.5); }
     .finale .f-no { font-family: var(--latin); font-style: italic; letter-spacing: .3em; color: #e9c46a; font-size: 14px; }
     .finale .f-name { font-family: var(--mincho); font-weight: 800; font-size: clamp(54px, 12vw, 120px); letter-spacing: .12em; line-height: 1.1; margin: 8px 0; text-shadow: 0 0 40px rgba(233, 196, 106, .25); }
     .finale .f-date { font-family: var(--latin); letter-spacing: .25em; font-size: clamp(14px, 2.4vw, 20px); color: #cfc3ad; }
@@ -277,6 +291,7 @@
   <div id="opening" aria-hidden="true">
     <canvas id="op-canvas"></canvas>
     <div class="op-grain"></div>
+    <div class="op-theme-measure" id="op-theme-measure" aria-hidden="true"></div>
     <div class="logo">
       <div class="op-mark">
         <div class="op-kanji" id="op-kanji"></div>
@@ -284,6 +299,7 @@
       </div>
       <div class="op-rule"></div>
       <div class="op-year" id="op-year"></div>
+      <div class="op-theme" id="op-theme"></div>
       <div class="op-en" id="op-en">ASAO HIGH SCHOOL FESTIVAL</div>
     </div>
     <div class="op-skip">TAP TO SKIP</div>
@@ -309,6 +325,7 @@
         <div class="seal">麻生</div>
       </div>
       <div class="cover-info">
+        <p class="theme-tag" id="cv-theme"></p>
         <p class="school">神奈川県立麻生高等学校</p>
         <p class="dates" id="cv-dates"></p>
         <p class="hours" id="cv-hours"></p>
@@ -343,7 +360,7 @@
 
   <section class="finale" id="finale">
     <div class="bg-photo" data-depth="0.25" style="background-image:url(images/scenes/fireworks.jpg)"></div>
-    <div><div class="f-no" id="f-no"></div><div class="f-name" id="f-name"></div><div class="f-date" id="f-date"></div></div>
+    <div><div class="f-no" id="f-no"></div><div class="f-name" id="f-name"></div><div class="f-date" id="f-date"></div><div class="theme-tag" id="f-theme"></div></div>
   </section>
 
   <footer>
@@ -377,6 +394,10 @@
     $("f-no").textContent = nth ? `THE ${ord(Number(nth))} FESTIVAL` : "";
     $("f-name").textContent = name;
     $("f-date").textContent = FESTIVAL.dates || "";
+    const theme = FESTIVAL.theme || "";
+    $("op-theme").textContent = theme; $("op-theme").hidden = !theme;
+    $("op-theme-measure").innerHTML = [...theme].map((c) => `<span>${esc(c)}</span>`).join("");
+    for (const id of ["cv-theme", "f-theme"]) { $(id).innerHTML = theme ? `${esc(theme)}<small>THEME</small>` : ""; $(id).hidden = !theme; }
 
     // ---------- オープニング ----------
     // 光の粒（金と朱）がうずを巻きながら集まって「鴻志祭」の形になる → 文字がくっきり出て印が押される
@@ -388,8 +409,7 @@
     const ease = (t) => 1 - Math.pow(1 - t, 4);
     function sizeCanvas() { cv.width = innerWidth * DPR; cv.height = innerHeight * DPR; }
     // 文字の形から、粒の行き先（点）をつくる
-    function glyphTargets() {
-      const spans = [...$("op-kanji").children];
+    function glyphTargets(spans, max) {
       const off = document.createElement("canvas"); off.width = cv.width; off.height = cv.height;
       const g = off.getContext("2d");
       g.fillStyle = "#fff"; g.textAlign = "center"; g.textBaseline = "middle";
@@ -399,18 +419,29 @@
         g.fillText(sp.textContent, (r.left + r.width / 2) * DPR, (r.top + r.height / 2) * DPR);
       }
       const data = g.getImageData(0, 0, off.width, off.height).data, pts = [];
-      const max = innerWidth < 700 ? 1500 : 2600;
       const area = spans.reduce((a, sp) => { const r = sp.getBoundingClientRect(); return a + r.width * r.height; }, 0) * DPR * DPR;
-      const step = Math.max(2, Math.round(Math.sqrt(area * 0.32 / max)));
-      for (let y = 0; y < off.height; y += step) for (let x = 0; x < off.width; x += step) if (data[(y * off.width + x) * 4 + 3] > 128) pts.push([x + rnd(-1, 1), y + rnd(-1, 1)]);
+      const step = Math.max(2, Math.sqrt(area * 0.32 / max) * 0.8);
+      for (let y = 0; y < off.height; y += step) for (let x = 0; x < off.width; x += step) if (data[(Math.floor(y) * off.width + Math.floor(x)) * 4 + 3] > 128) pts.push([x + rnd(-0.5, 0.5) * step, y + rnd(-0.5, 0.5) * step]); // 格子に見えないよう、少しずつずらす
       return pts.sort(() => Math.random() - 0.5).slice(0, max);
     }
+    // テーマがあるとき：粒はまず青い光で「テーマ」の形に集まり、そのあと流れるように「祭りの名前」へ形を変えて金色になる
+    let hasTheme = false, T = {};
     function initParticles() {
       const W = cv.width, H = cv.height, R = Math.hypot(W, H) * 0.6;
-      parts = glyphTargets().map(([tx, ty]) => {
+      const max = innerWidth < 700 ? 1500 : 2600;
+      const logo = glyphTargets([...$("op-kanji").children], max);
+      const th = (FESTIVAL.theme ? glyphTargets([...$("op-theme-measure").children], max) : []);
+      hasTheme = th.length > 50;
+      // 時間割（秒）：テーマに集まる → ためる → ロゴへ → 文字がくっきり
+      T = hasTheme ? { gather: 0.1, gDur: 1.2, morph: 2.05, mDur: 1.35, fade: 3.3 } : { gather: 0.15, gDur: 1.25, morph: 0, mDur: 0, fade: 1.9 };
+      // 左の粒は左へ行くように、横の位置の順でつなぐ（交差が少なく、流れが美しい）
+      const byX = (a) => a.map((p, i) => [p, i]).sort((u, v) => u[0][0] - v[0][0]);
+      const L = byX(logo), A = hasTheme ? byX(th) : null;
+      parts = L.map(([[tx, ty]], i) => {
         const a = rnd(0, Math.PI * 2), r = rnd(R * 0.35, R);
-        return { sx: W / 2 + Math.cos(a) * r, sy: H / 2 + Math.sin(a) * r, tx, ty, a, spin: rnd(0.6, 1.4) * (Math.random() < 0.5 ? -1 : 1),
-          d: (tx / W) * 0.45 + rnd(0, 0.25), s: rnd(0.7, 1.6) * DPR, gold: Math.random() < 0.82 };
+        const [ax, ay] = hasTheme ? A[Math.floor((i / L.length) * A.length)][0] : [tx, ty];
+        return { sx: W / 2 + Math.cos(a) * r, sy: H / 2 + Math.sin(a) * r, ax, ay, tx, ty, a, spin: rnd(0.6, 1.4) * (Math.random() < 0.5 ? -1 : 1),
+          d: (ax / W) * 0.45 + rnd(0, 0.25), d2: (tx / W) * 0.35 + rnd(0, 0.2), lift: rnd(-1, 1) * H * 0.08, s: rnd(0.7, 1.6) * DPR, gold: Math.random() < 0.82 };
       });
     }
     function burst(x, y, hue) {
@@ -427,17 +458,32 @@
       cx.globalCompositeOperation = "source-over";
       cx.fillStyle = "rgba(14, 11, 9, 0.28)"; cx.fillRect(0, 0, W, H);
       cx.globalCompositeOperation = "lighter";
-      const fadeOut = t > 1.9 ? Math.max(0, 1 - (t - 1.9) / 0.9) : 1; // 文字がくっきり出たら、粒は消えていく
+      const fadeOut = t > T.fade ? Math.max(0, 1 - (t - T.fade) / 0.9) : 1; // 文字がくっきり出たら、粒は消えていく
       if (fadeOut > 0) for (const p of parts) {
-        const k = Math.min(1, Math.max(0, (t - 0.15 - p.d) / 1.25)), e = ease(k);
-        const swirl = (1 - e) * 0.9 * p.spin; // 集まりながら、うずを巻く
-        const dx = p.sx - p.tx, dy = p.sy - p.ty;
-        const x = p.tx + (dx * Math.cos(swirl) - dy * Math.sin(swirl)) * (1 - e);
-        const y = p.ty + (dx * Math.sin(swirl) + dy * Math.cos(swirl)) * (1 - e) + Math.sin(t * 6 + p.a * 5) * (1 - e) * 6 * DPR;
+        // ① 集まる（うずを巻きながら）
+        const k = Math.min(1, Math.max(0, (t - T.gather - p.d) / T.gDur)), e = ease(k);
+        const swirl = (1 - e) * 0.9 * p.spin;
+        const dx = p.sx - p.ax, dy = p.sy - p.ay;
+        let x = p.ax + (dx * Math.cos(swirl) - dy * Math.sin(swirl)) * (1 - e);
+        let y = p.ay + (dx * Math.sin(swirl) + dy * Math.cos(swirl)) * (1 - e) + Math.sin(t * 6 + p.a * 5) * (1 - e) * 6 * DPR;
+        // ② テーマの形から、ロゴの形へ（弧をえがいて流れる）
+        let m = 0;
+        if (hasTheme) {
+          m = ease(Math.min(1, Math.max(0, (t - T.morph - p.d2) / T.mDur)));
+          if (m > 0) {
+            const arc = Math.sin(m * Math.PI) * p.lift;
+            x = x + (p.tx - x) * m + Math.sin(m * Math.PI) * (p.spin * 12 * DPR);
+            y = y + (p.ty - y) * m - arc;
+          }
+          if (k >= 1 && m === 0) { x += Math.sin(t * 2.2 + p.a) * 0.9 * DPR; y += Math.cos(t * 2.6 + p.a) * 0.9 * DPR; } // ためている間、かすかにゆらぐ
+        }
         const tw = 0.6 + 0.4 * Math.sin(t * 9 + p.a * 13); // きらめき
         const al = (k > 0 ? 0.35 + 0.65 * e : 0.12) * fadeOut * tw;
-        cx.fillStyle = p.gold ? `rgba(240, 200, 120, ${al})` : `rgba(230, 90, 60, ${al})`;
-        cx.beginPath(); cx.arc(x, y, p.s * (1.6 - 0.7 * e), 0, Math.PI * 2); cx.fill();
+        // 色：テーマは青と白（青春）→ ロゴは金と朱
+        const c = hasTheme ? m : 1;
+        const from = p.gold ? [120, 180, 255] : [235, 245, 255], to = p.gold ? [240, 200, 120] : [230, 90, 60];
+        cx.fillStyle = `rgba(${from.map((v, i) => Math.round(v + (to[i] - v) * c)).join(",")}, ${al})`;
+        cx.beginPath(); cx.arc(x, y, p.s * (1.6 - 0.7 * e) * (1 + Math.sin(m * Math.PI) * 0.6), 0, Math.PI * 2); cx.fill();
       }
       for (let i = sparks.length - 1; i >= 0; i--) {
         const q = sparks[i];
@@ -460,19 +506,20 @@
       op.querySelectorAll("*").forEach((el) => { el.style.animationName = "none"; void el.offsetWidth; el.style.animationName = ""; });
       sizeCanvas();
       // 文字の形を正しくとるため、明朝体の読み込みを少しだけ待つ
-      try { await Promise.race([document.fonts.load(`800 100px "Shippori Mincho B1"`, name), new Promise((r) => setTimeout(r, 1200))]); } catch { /* なくても動く */ }
+      try { await Promise.race([document.fonts.load(`800 100px "Shippori Mincho B1"`, name + (FESTIVAL.theme || "")), new Promise((r) => setTimeout(r, 1200))]); } catch { /* なくても動く */ }
       initParticles();
       cx.fillStyle = "#0e0b09"; cx.fillRect(0, 0, cv.width, cv.height);
       running = true; t0 = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
       const at = (ms, f) => opTimers.push(setTimeout(f, ms));
-      at(1750, () => op.classList.add("p2"));
-      at(2350, () => op.classList.add("p3"));
+      const D = hasTheme ? 1400 : 0; // テーマを見せる分だけ、あとをずらす
+      at(1750 + D, () => op.classList.add("p2"));
+      at(2350 + D, () => op.classList.add("p3"));
       const W = cv.width, H = cv.height;
-      at(2600, () => burst(W * 0.2, H * 0.24, 42));
-      at(2950, () => burst(W * 0.8, H * 0.2, 8));
-      at(3300, () => burst(W * 0.5, H * 0.12, 48));
-      at(3650, () => burst(W * 0.32, H * 0.78, 30));
-      at(4500, endOpening);
+      at(2600 + D, () => burst(W * 0.2, H * 0.24, 42));
+      at(2950 + D, () => burst(W * 0.8, H * 0.2, 210)); // 青い花火
+      at(3300 + D, () => burst(W * 0.5, H * 0.12, 48));
+      at(3650 + D, () => burst(W * 0.32, H * 0.78, 200));
+      at(4900 + D, endOpening);
     }
     op.addEventListener("click", endOpening);
     document.addEventListener("keydown", (e) => { if (op.style.display !== "none" && (e.key === "Escape" || e.key === "Enter" || e.key === " ")) endOpening(); });
