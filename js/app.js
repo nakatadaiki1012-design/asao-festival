@@ -2491,13 +2491,28 @@ function showWing(w) {
   flyTo(new THREE.Vector3(cx + 30, 45, cz + 45), new THREE.Vector3(cx, 5, cz));
 }
 
+// 屋外の場所へカメラを向ける。屋外テント（1号館と2号館のあいだ）は、校舎のかげにならないよう、
+// 東（正門側）の上から通路にそって見下ろして、ぐっと近づく
+function siteFly(it) {
+  const between = it.tentNo || /1号館と2号館/.test(it.name);
+  let P, T;
+  if (between) {
+    if (state.floor !== 0) setFloor(0, { keepCamera: true }); // 階を見ているときは外観にもどす（テントは外にある）
+    const k = it.tentNo ? 1 : 1.7; // テント1つなら近く、通路全体ならすこし引く
+    T = new THREE.Vector3(it.x - 2 * k, 0, it.z);
+    P = new THREE.Vector3(it.x + 13 * k, 19 * k, it.z + 2.5 * k);
+  } else {
+    P = new THREE.Vector3(it.x + 30, 50, it.z + 55); T = new THREE.Vector3(it.x, 0, it.z);
+  }
+  liftView(P, T); flyTo(P, T);
+}
 function showSite(it, { fly = true } = {}) {
   if (fly) returnView = null;
   state.site = it;
   if (it.exhibits?.length) {
     panelBody.innerHTML = `<h2>${it.name}</h2><p class="where">屋外</p>${exhibitCardsHtml(it.exhibits)}`;
     openPanel();
-    if (fly) { const P = new THREE.Vector3(it.x + 30, 50, it.z + 55), T = new THREE.Vector3(it.x, 0, it.z); liftView(P, T); flyTo(P, T); }
+    if (fly) { siteFly(it); }
     return;
   }
   panelBody.innerHTML = `
@@ -2508,7 +2523,7 @@ function showSite(it, { fly = true } = {}) {
     <p class="muted">${SITE_NOTE}</p>
   `;
   openPanel();
-  if (fly) { const P = new THREE.Vector3(it.x + 30, 50, it.z + 55), T = new THREE.Vector3(it.x, 0, it.z); liftView(P, T); flyTo(P, T); }
+  if (fly) { siteFly(it); }
 }
 
 function openPanel() { panel.classList.add("open"); document.body.classList.add("panel-open"); panel.scrollTop = 0; applySheetOffset(); }
