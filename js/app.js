@@ -2418,20 +2418,33 @@ function selectRoom(r, { fly = true, close = false } = {}) {
   r.label?.classList.add("selected");
   if (fly) {
     if (state.view === "2d") {
-      controls2d.target.set(r.wx, 0, r.wz);
-      ortho.position.set(r.wx, 200, r.wz + 0.001);
       ortho.zoom = Math.max(ortho.zoom, close ? 2.0 : 1.6);
+      const dz2 = sheetLift() * ortho.top / ortho.zoom; // 2D：画面の上が北なので、見る点を南へ
+      controls2d.target.set(r.wx, 0, r.wz + dz2);
+      ortho.position.set(r.wx, 200, r.wz + dz2 + 0.001);
       ortho.updateProjectionMatrix();
     } else {
       // close：部屋の大きさに合わせて、ぐっと近づく
       const k = close ? Math.min(0.9, Math.max(0.55, Math.max(r.w, r.d) / 30)) : 1;
-      flyTo(new THREE.Vector3(r.wx + 10 * k, base(r.floor) + 26 * k, r.wz + 26 * k), new THREE.Vector3(r.wx, base(r.floor), r.wz));
+      const P = new THREE.Vector3(r.wx + 10 * k, base(r.floor) + 26 * k, r.wz + 26 * k), T = new THREE.Vector3(r.wx, base(r.floor), r.wz);
+      liftView(P, T);
+      flyTo(P, T);
     }
   }
   const cat = CATEGORIES[r.cat];
   const sameFloor = r.kind === "stairs"
     ? `<p class="muted">この階段で行ける階：${STAIRS.find((s) => s.name === r.name).floors.map((f) => `<button class="link" data-floor="${f}">${f}階</button>`).join(" ")}</p>`
     : "";
+  if (r.exhibits?.length) { // 出し物のある部屋：出し物だけを出す（もとの部屋の紹介は出さない）
+    panelBody.innerHTML = `
+      <h2>${r.grade ? `${r.grade}-${r.cls} 教室` : r.name}</h2>
+      <p class="where">${r.floor}階${r.wing ? `・${r.wing.name}` : ""}</p>
+      ${exhibitCardsHtml(r.exhibits)}
+      <p class="share"><button class="link" id="copy-link">🔗 この場所へのリンクをコピー</button></p>`;
+    openPanel();
+    history.replaceState(null, "", `#room=${r.id}`);
+    return;
+  }
   panelBody.innerHTML = `
     <div class="chip" style="--c:${cat.color}">${cat.label}</div>
     <h2>${r.name}</h2>
@@ -2481,21 +2494,78 @@ function showWing(w) {
 function showSite(it, { fly = true } = {}) {
   if (fly) returnView = null;
   state.site = it;
+  if (it.exhibits?.length) {
+    panelBody.innerHTML = `<h2>${it.name}</h2><p class="where">屋外</p>${exhibitCardsHtml(it.exhibits)}`;
+    openPanel();
+    if (fly) { const P = new THREE.Vector3(it.x + 30, 50, it.z + 55), T = new THREE.Vector3(it.x, 0, it.z); liftView(P, T); flyTo(P, T); }
+    return;
+  }
   panelBody.innerHTML = `
     <div class="chip" style="--c:#cfe3c4">屋外の施設</div>
     <h2>${it.name}</h2>
-    ${exhibitCardsHtml(it.exhibits)}
     ${photosHtml([].concat(it.photos || []), it.name)}
     <p class="desc">${it.desc}</p>
     <p class="muted">${SITE_NOTE}</p>
   `;
   openPanel();
-  if (fly) flyTo(new THREE.Vector3(it.x + 30, 50, it.z + 55), new THREE.Vector3(it.x, 0, it.z));
+  if (fly) { const P = new THREE.Vector3(it.x + 30, 50, it.z + 55), T = new THREE.Vector3(it.x, 0, it.z); liftView(P, T); flyTo(P, T); }
 }
 
-function openPanel() { panel.classList.add("open"); document.body.classList.add("panel-open"); }
+function openPanel() { panel.classList.add("open"); document.body.classList.add("panel-open"); panel.scrollTop = 0; applySheetOffset(); }
+
+// ---------- スマホ：下から出る紹介の欄（上のつまみを上下にスワイプで大きさを変える） ----------
+const isSheet = () => matchMedia("(max-width: 760px)").matches;
+let sheetReady = false; // 描画のしくみの準備ができてから再描画をたのむ
+function applySheetOffset() { if (sheetReady) poke(); }
+// 紹介の欄で隠れないように、見たい場所が欄の上の見えている所のまんなかに来るよう、カメラをずらす
+// 返り値：画面のまんなかから上へずらしたい量（画面の高さの半分に対する割合）
+function sheetLift() {
+  if (!isSheet()) return 0;
+  const H = app.clientHeight, sh = parseFloat(panel.style.height) || innerHeight * 0.36;
+  return Math.min(0.8, (sh / 2) / (H / 2));
+}
+function liftView(pos, target) { // 3D：カメラと見る点を、カメラのほうへ水平にずらす
+  const f = sheetLift();
+  if (!f) return;
+  const h = pos.y - target.y, dx = pos.x - target.x, dz = pos.z - target.z, hd = Math.hypot(dx, dz);
+  if (h <= 0 || hd < 1e-3) return;
+  const th = Math.atan2(h, hd), al = Math.atan(Math.tan(THREE.MathUtils.degToRad(persp.fov / 2)) * f);
+  if (th - al < 0.05) return;
+  const sft = h / Math.tan(th - al) - h / Math.tan(th);
+  const ux = dx / hd, uz = dz / hd;
+  pos.x += ux * sft; pos.z += uz * sft; target.x += ux * sft; target.z += uz * sft;
+}
+{
+  const grip = document.getElementById("sheet-grip");
+  let start = null;
+  grip.addEventListener("pointerdown", (e) => {
+    start = { y: e.clientY, h: panel.offsetHeight };
+    grip.setPointerCapture(e.pointerId);
+    panel.classList.add("dragging");
+  });
+  grip.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    const vh = innerHeight, h = Math.max(vh * 0.12, Math.min(vh * 0.9, start.h + start.y - e.clientY));
+    panel.style.height = h + "px";
+    applySheetOffset();
+  });
+  const end = (e) => {
+    if (!start) return;
+    panel.classList.remove("dragging");
+    const vh = innerHeight, h = panel.offsetHeight, moved = Math.abs(e.clientY - start.y);
+    start = null;
+    if (moved < 6) { panel.style.height = (h < vh * 0.5 ? vh * 0.62 : vh * 0.36) + "px"; } // つまみをタップ：大きく／小さく
+    else if (h < vh * 0.22) { panel.style.height = ""; closePanel(); return; } // 下まで下げたら閉じる
+    else { const snaps = [0.36, 0.62, 0.88]; const s = snaps.reduce((a, b) => (Math.abs(b * vh - h) < Math.abs(a * vh - h) ? b : a)); panel.style.height = s * vh + "px"; }
+    setTimeout(applySheetOffset, 220);
+  };
+  grip.addEventListener("pointerup", end);
+  grip.addEventListener("pointercancel", end);
+}
 function closePanel({ restore = true } = {}) {
   panel.classList.remove("open");
+  panel.style.height = "";
+  applySheetOffset();
   document.body.classList.remove("panel-open");
   if (state.selected?.mesh) {
     showTile(state.selected, false); state.selected.mesh.material.emissive.setHex(0x000000);
@@ -2536,13 +2606,14 @@ labelRenderer.domElement.addEventListener("pointerup", (e) => {
       const [dx, dz] = toDrawing(p.x, p.z);
       const c = dx / CW + C_MID, r = dz / RH + R_MID;
       const w = WINGS.find((w) => areasOf(w).some((a) => c >= a[0] - 0.5 && c <= a[2] + 1.5 && r >= a[1] - 0.5 && r <= a[3] + 1.5));
-      if (w) { showWing(w); return; }
+      if (w && (!EXHIBITS.length || w.label?.classList.contains("ex-has"))) { showWing(w); return; }
     }
     closePanel(); // 何もないところを押したら、紹介を閉じる
     return;
   }
   const hits = ray.intersectObjects(pickables.filter((m) => m.userData.room.floor === state.floor), false);
-  if (hits.length) selectRoom(hits[0].object.userData.room, { fly: false });
+  const hr = hits[0]?.object.userData.room;
+  if (hr && tappable(hr)) selectRoom(hr, { fly: false }); // 出し物のない部屋は押しても何も出さない
   else closePanel(); // 部屋のないところを押したら、紹介を閉じる
 });
 
@@ -2623,8 +2694,43 @@ document.addEventListener("click", (e) => { if (!e.target.closest(".search-box")
 
 // ---------- 文化祭の出し物（Google スプレッドシート または data/exhibits.csv から読む） ----------
 let EXHIBITS = [];
+// 押せる場所：出し物データがあるときは、出し物のある部屋だけ
+const tappable = (r) => { const q = r.kind === "part" ? r.parent : r; return !EXHIBITS.length || !!q.exhibits?.length; };
 const EX_SITES = SITE_INFO.filter((it) => !it.key || SITE[it.key]);
-const placeName = (e) => e.room ? `${e.room.floor}階 ${e.room.name}` : e.site ? `屋外・${e.site.name}` : (e.place || "場所未定");
+const placeName = (e) => e.room ? `${e.room.floor}階 ${e.room.name}` : e.site ? `屋外・${e.alias ? `${e.alias}（${e.site.name}）` : e.site.name}` : (e.place || "場所未定");
+
+// 屋外テント（白い幌の運動会テント）：1号館と2号館のあいだに、北と南に3基ずつ。後ろ（校舎側）は青い幕
+if (FESTIVAL.tents) {
+  const g = new THREE.Group();
+  const matCanvas = new THREE.MeshStandardMaterial({ color: 0xf6f5f0, roughness: 0.85, side: THREE.DoubleSide });
+  const matBlue = new THREE.MeshStandardMaterial({ color: 0x2c6bc4, roughness: 0.8, side: THREE.DoubleSide });
+  const matPole = new THREE.MeshStandardMaterial({ color: 0xc4c8cb, metalness: 0.5, roughness: 0.4 });
+  const matTable = new THREE.MeshStandardMaterial({ color: 0xe9e4d8, roughness: 0.8 });
+  const Y0 = -0.19, H = 2.3, R = 0.75; // 地面の高さ、軒の高さ、屋根の高さ
+  const tent = (cx, cz, w, d, back) => {
+    const t = new THREE.Group();
+    const poleGeo = new THREE.CylinderGeometry(0.04, 0.04, H, 8);
+    for (const x of [-w / 2, 0, w / 2]) for (const z of [-d / 2, d / 2]) {
+      if (x === 0 && z !== back * d / 2) continue; // まんなかの柱は後ろだけ
+      const pl = new THREE.Mesh(poleGeo, matPole); pl.position.set(x, H / 2, z); t.add(pl);
+    }
+    // 屋根：棟が東西にのびる三角の屋根（四方に少し張り出す）
+    const sh = new THREE.Shape([new THREE.Vector2(-d / 2 - 0.15, 0), new THREE.Vector2(d / 2 + 0.15, 0), new THREE.Vector2(0, R)]);
+    const roof = new THREE.ExtrudeGeometry(sh, { depth: w + 0.3, bevelEnabled: false });
+    roof.translate(0, 0, -(w + 0.3) / 2); roof.rotateY(Math.PI / 2);
+    const rm = new THREE.Mesh(roof, matCanvas); rm.position.y = H; t.add(rm);
+    // 屋根のふちの白い幕（たれ）
+    for (const z of [-d / 2 - 0.15, d / 2 + 0.15]) { const v = new THREE.Mesh(new THREE.PlaneGeometry(w + 0.3, 0.28), matCanvas); v.position.set(0, H - 0.14, z); t.add(v); }
+    // 後ろの青い幕と、前の長机
+    const bk = new THREE.Mesh(new THREE.PlaneGeometry(w, H - 0.3), matBlue); bk.position.set(0, (H - 0.3) / 2, back * d / 2); t.add(bk);
+    const tb = new THREE.Mesh(new THREE.BoxGeometry(w - 0.5, 0.7, 0.6), matTable); tb.position.set(0, 0.35, -back * (d / 2 - 0.5)); t.add(tb);
+    t.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    t.position.set(cx, Y0, cz);
+    g.add(t);
+  };
+  for (const x of [28.4, 32.8, 37.2]) { tent(x, -4.6, 4.0, 3.2, -1); tent(x, 5.5, 4.0, 3.4, 1); }
+  scene.add(g);
+}
 document.querySelector(".brand h1").textContent = FESTIVAL.title;
 document.querySelector(".brand .sub").textContent = FESTIVAL.subtitle;
 document.title = FESTIVAL.title;
@@ -2634,6 +2740,7 @@ function exLabel(el, list, name) {
   el.className = el.__orig.cls;
   el.innerHTML = el.__orig.html;
   el.style.removeProperty("--g");
+  el.classList.toggle("noex", !list?.length && EXHIBITS.length > 0);
   if (list?.length) {
     el.classList.remove("staff", "vertical", "small");
     el.classList.add("ex");
@@ -2660,6 +2767,7 @@ function applyExhibits(list) {
     if (!w.label) continue;
     const n = EXHIBITS.filter((e) => e.room?.wing === w).length;
     w.label.innerHTML = `${esc(w.name)}${n ? ` <span class="ex-count">🎪${n}</span>` : ""}`;
+    w.label.classList.toggle("noex", !n); w.label.classList.toggle("ex-has", !!n);
     w.label.__w = undefined;
   }
   document.getElementById("ex-count").textContent = EXHIBITS.length ? EXHIBITS.length : "";
@@ -2901,6 +3009,7 @@ function resize() {
   const halfH = a > 1.25 ? view : (view * 1.25) / a;
   ortho.left = -halfH * a; ortho.right = halfH * a; ortho.top = halfH; ortho.bottom = -halfH;
   ortho.updateProjectionMatrix();
+  applySheetOffset();
 }
 window.addEventListener("resize", resize);
 resize();
@@ -3438,6 +3547,7 @@ if (m && ROOM_BY_ID[m[1]]) selectRoom(ROOM_BY_ID[m[1]]);
 const ms = location.hash.match(/site=(\d+)/); // パンフレットから屋外の場所へ
 if (ms && SITE_INFO[Number(ms[1])]) showSite(SITE_INFO[Number(ms[1])]);
 requestAnimationFrame(tick);
+sheetReady = true;
 refreshExhibits();
 setInterval(refreshExhibits, 5 * 60 * 1000); // 5分ごとに出し物データを読み直す（開きっぱなしの案内用の画面のため）
 document.getElementById("loading").remove();

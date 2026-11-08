@@ -148,7 +148,7 @@
     const rooms = baseRooms();
     const sites = SITE_INFO.filter((it) => !it.key || SITE[it.key]);
     const $ = (id) => document.getElementById(id);
-    const mapLink = (m) => m.room ? `./#room=${m.room.id}` : "./";
+    const mapLink = (m) => m.room ? `./#room=${m.room.id}` : m.site ? `./#site=${SITE_INFO.indexOf(m.site)}` : "./";
 
     document.title = `出し物の管理画面｜${FESTIVAL.title}`;
     $("genre-list").innerHTML = Object.keys(FESTIVAL.genres).map((g) => `<span class="genre" style="background:${genreColor(g)}">${esc(g)}</span>`).join(" ");

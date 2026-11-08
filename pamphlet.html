@@ -368,7 +368,7 @@
     const WEEK = { 日: "SUN", 月: "MON", 火: "TUE", 水: "WED", 木: "THU", 金: "FRI", 土: "SAT" };
     const dayLabel = (k) => { const [, mo, d, w] = k.match(/(\d+)-(\d+)(.?)/); return `${Number(mo)}.${Number(d)}${w ? " " + (WEEK[w] || w) : ""}`; };
     const times = (t) => [...String(t || "").normalize("NFKC").matchAll(/(\d{1,2}):(\d{2})/g)].map((m) => `${m[1]}:${m[2]}`);
-    const placeOf = (e) => e.room ? `${e.room.floor}F ${e.room.name.replace(/ 教室$/, "")}` : e.site ? e.site.name : (e.place || "");
+    const placeOf = (e) => e.room ? `${e.room.floor}F ${e.room.name.replace(/ 教室$/, "")}` : e.site ? (e.alias || e.site.name) : (e.place || "");
     const mapHref = (e) => e.room ? `./#room=${e.room.id}` : e.site ? `./#site=${SITE_INFO.indexOf(e.site)}` : "./";
     let ALL = [];
 
@@ -466,7 +466,7 @@
       const s = JSON.stringify(list);
       if (s === sig) return;
       sig = s;
-      ALL = list.map((e) => { const m = matchPlace(e.place, rooms, sites); return { ...e, room: m?.room || null, site: m?.site || null }; });
+      ALL = list.map((e) => { const m = matchPlace(e.place, rooms, sites); return { ...e, room: m?.room || null, site: m?.site || null, alias: m?.alias || "" }; });
       render();
     }
     refresh();

@@ -169,6 +169,7 @@ body.aerial-on .wing-label.site { display: none !important; }
 .wing-label.site { background: rgba(47, 106, 70, 0.85); }
 
 /* ---------- 情報パネル ---------- */
+.sheet-grip { display: none; }
 #panel {
   position: absolute; top: 76px; right: 16px; bottom: 16px; z-index: 15; width: 340px;
   background: var(--panel); border-radius: 16px; box-shadow: var(--shadow);
@@ -239,9 +240,17 @@ dialog::backdrop { background: rgba(20, 30, 40, 0.45); }
   .view-bar { bottom: 14px; gap: 8px; }
   .check { font-size: 12px; }
   #panel {
-    top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 58vh;
-    border-radius: 18px 18px 0 0; transform: translateY(105%);
+    top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 36vh; max-height: none;
+    border-radius: 18px 18px 0 0; transform: translateY(105%); padding-top: 0;
+    transition: transform .25s ease, height .2s ease;
   }
+  #panel.dragging { transition: none; }
+  .sheet-grip {
+    display: block; position: sticky; top: 0; z-index: 3; margin: 0 -20px 6px; height: 26px;
+    background: var(--panel); touch-action: none; cursor: grab;
+  }
+  .sheet-grip span { position: absolute; left: 50%; top: 10px; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px; background: #c9d0d6; }
+  #panel .close { top: 18px; z-index: 4; position: sticky; float: right; margin-top: -6px; }
   #gmap { height: 320px; }
 }
 
@@ -423,3 +432,7 @@ body.exploring #stick { display: none; }
 .ex-list button:disabled { cursor: default; opacity: 0.7; }
 .ex-list .ex-sub { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
 a.ghost { text-decoration: none; color: inherit; display: inline-flex; align-items: center; }
+
+/* 出し物のない場所の名前は押せない（うすく） */
+.room-label.noex, .wing-label.noex { pointer-events: none; cursor: default; opacity: .6; }
+.wing-label.site.noex { opacity: .75; }
