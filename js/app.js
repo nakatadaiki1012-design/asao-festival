@@ -2775,7 +2775,9 @@ function exLabel(el, list, name) {
     for (const e of list) { const t = e.title || e.group || "出し物"; if (!seen.has(t)) { seen.add(t); items.push([t, genreColor(e.genre)]); } }
     const many = items.length > 1;
     el.classList.toggle("multi", many);
-    el.innerHTML = `<span class="ex-name">${esc(name)}</span>` + items.slice(0, 4).map(([t, c]) => `<span class="ex-title"${many ? ` style="--d:${c}"` : ""}>${esc(t)}</span>`).join("")
+    // 長い名前は文字を小さく（長さで3段階）。切らずに折り返して全部出す
+    const lenCls = (t) => { const n = [...t].reduce((a, ch) => a + (/[ -~]/.test(ch) ? 0.55 : 1), 0); return n > 16 ? " l3" : n > 11 ? " l2" : n > 7 ? " l1" : ""; };
+    el.innerHTML = `<span class="ex-name">${esc(name)}</span>` + items.slice(0, 4).map(([t, c]) => `<span class="ex-title${lenCls(t)}"${many ? ` style="--d:${c}"` : ""}>${esc(t)}</span>`).join("")
       + (items.length > 4 ? `<span class="ex-more">ほか${items.length - 4}</span>` : "");
   }
   el.__w = undefined; // 名前の大きさが変わったので、重なりの計算をやり直す

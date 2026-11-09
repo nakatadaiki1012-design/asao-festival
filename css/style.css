@@ -468,3 +468,35 @@ body.lbl-far .room-label.ex:not(.multi) .ex-title, body.lbl-far .wing-label.ex:n
 /* ずらした出し物の名前：うすい影で、もとの場所から少し離れていることがわかるように */
 .room-label.ex.moved, .wing-label.ex.moved { box-shadow: 0 2px 8px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.08); }
 .room-label.ex, .wing-label.ex { transition: translate .25s ease, scale .25s ease, opacity .2s; }
+
+/* ---------- 出し物の名前：長くても切らずに、折り返して全部出す ---------- */
+.room-label.ex .ex-title, .wing-label.ex .ex-title,
+body.lbl-mid .room-label.ex .ex-title, body.lbl-mid .wing-label.ex .ex-title,
+body.lbl-far .room-label.ex .ex-title, body.lbl-far .wing-label.ex .ex-title,
+body.lbl-far .room-label.ex:not(.multi) .ex-title, body.lbl-far .wing-label.ex:not(.multi) .ex-title {
+  white-space: normal; overflow: visible; text-overflow: clip; -webkit-line-clamp: unset; display: block;
+  overflow-wrap: anywhere; word-break: normal; line-break: strict; text-align: center; line-height: 1.15;
+  max-width: 8em;
+}
+.room-label.ex.multi .ex-title, .wing-label.ex.multi .ex-title { display: flex; text-align: left; max-width: 10em; }
+/* 長い名前ほど小さく（近くで見ているとき） */
+.room-label.ex .ex-title.l1, .wing-label.ex .ex-title.l1 { font-size: 11.5px; max-width: 8.5em; }
+.room-label.ex .ex-title.l2, .wing-label.ex .ex-title.l2 { font-size: 10.5px; max-width: 9em; }
+.room-label.ex .ex-title.l3, .wing-label.ex .ex-title.l3 { font-size: 9.5px; max-width: 9.5em; }
+/* 少し遠く */
+body.lbl-mid .room-label.ex .ex-title.l1, body.lbl-mid .wing-label.ex .ex-title.l1 { font-size: 10px; max-width: 7em; }
+body.lbl-mid .room-label.ex .ex-title.l2, body.lbl-mid .wing-label.ex .ex-title.l2 { font-size: 9.5px; max-width: 7.5em; }
+body.lbl-mid .room-label.ex .ex-title.l3, body.lbl-mid .wing-label.ex .ex-title.l3 { font-size: 9px; max-width: 8em; }
+/* もっと遠く：細く縦に3行くらいまで */
+body.lbl-far .room-label.ex .ex-title, body.lbl-far .wing-label.ex .ex-title { font-size: 9px; max-width: 5.6em; line-height: 1.1; }
+body.lbl-far .room-label.ex .ex-title.l2, body.lbl-far .wing-label.ex .ex-title.l2,
+body.lbl-far .room-label.ex .ex-title.l3, body.lbl-far .wing-label.ex .ex-title.l3 { font-size: 8.5px; max-width: 6.4em; }
+/* いくつもならべるとき：左に色の点、右に名前（名前は折り返してよい） */
+.room-label.ex.multi .ex-title, .wing-label.ex.multi .ex-title,
+body.lbl-mid .room-label.ex.multi .ex-title, body.lbl-mid .wing-label.ex.multi .ex-title,
+body.lbl-far .room-label.ex.multi .ex-title, body.lbl-far .wing-label.ex.multi .ex-title {
+  display: grid; grid-template-columns: auto 1fr; column-gap: 4px; align-items: center; text-align: left;
+}
+.room-label.ex.multi .ex-title::before, .wing-label.ex.multi .ex-title::before { align-self: center; height: 7px; }
+body.lbl-far .room-label.ex.multi .ex-title::before, body.lbl-far .wing-label.ex.multi .ex-title::before { height: 5px; }
+.room-label.ex.multi, .wing-label.ex.multi { align-items: stretch; }
