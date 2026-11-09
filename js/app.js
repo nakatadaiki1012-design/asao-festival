@@ -3109,17 +3109,41 @@ function declutter() {
       let prio = labelPrio.get(el);
       if (prio === undefined) { const r = ROOMS.find((q) => q.label === el); prio = (r ? (r.grade ? 1e6 : 0) + r.w * r.d : el.classList.contains("site") ? 5e4 : 1e5) + (el.classList.contains("ex") ? 2e6 : 0); labelPrio.set(el, prio); } // 出し物のある場所の名前を先に出す // 外の施設の名前は、棟の名前より後回し
       if (el.classList.contains("selected")) prio = 1e9;
-      items.push({ el, prio, left: x - hw, right: x + hw, top: y - hh, bottom: y + hh });
+      items.push({ el, prio, x, y, hw, hh, ex: el.classList.contains("ex") && !el.classList.contains("selected") });
     });
   }
   items.sort((a, b) => b.prio - a.prio);
+  // 出し物の名前は、重なるときに上下左右へ少しずらす。それでも入らないときは少し小さくする。
+  // それでもだめなときだけ隠す（出し物のない名前は、ずらさずに隠す）
   const placed = [];
+  const free = (l, r, t, b) => l > -4 && r < W + 4 && t > 50 && b < H + 4 && !placed.some((q) => l < q.r - 1 && r > q.l + 1 && t < q.b && b > q.t);
   for (const a of items) {
-    const hit = placed.some((b) => a.left < b.right - 2 && a.right > b.left + 2 && a.top < b.bottom - 1 && a.bottom > b.top + 1);
-    if (a.el.classList.contains("overlap") !== hit) a.el.classList.toggle("overlap", hit);
-    if (!hit) placed.push(a);
+    let ok = null;
+    const tries = a.ex ? SPOTS : SPOTS.slice(0, 1);
+    for (const [ox, oy, sc] of tries) {
+      const hw = a.hw * sc, hh = a.hh * sc, cx = a.x + ox * a.hw * 2, cy = a.y + oy * a.hh * 2;
+      if (free(cx - hw, cx + hw, cy - hh, cy + hh)) { ok = [ox * a.hw * 2, oy * a.hh * 2, sc, cx - hw, cx + hw, cy - hh, cy + hh]; break; }
+    }
+    const el = a.el, hide = !ok;
+    if (el.classList.contains("overlap") !== hide) el.classList.toggle("overlap", hide);
+    if (hide) continue;
+    const [dx, dy, sc, l, r, t, b] = ok;
+    const tr = dx || dy ? `${dx.toFixed(0)}px ${dy.toFixed(0)}px` : "";
+    if (el.style.translate !== tr) el.style.translate = tr; // CSS2D の位置（transform）に、ずらす分を足す
+    const scs = sc === 1 ? "" : String(sc);
+    if (el.style.scale !== scs) el.style.scale = scs;
+    el.classList.toggle("moved", !!(dx || dy));
+    placed.push({ l, r, t, b });
   }
 }
+// 名前をずらす場所の候補：[横（名前の幅の何倍）, 縦（名前の高さの何倍）, 大きさ]。近い所から順にためす
+const SPOTS = [
+  [0, 0, 1], [0, -0.75, 1], [0, 0.75, 1], [0.55, 0, 1], [-0.55, 0, 1], [0.45, -0.7, 1], [-0.45, -0.7, 1], [0.45, 0.7, 1], [-0.45, 0.7, 1], [0, -1.4, 1], [0, 1.4, 1],
+  [0, 0, 0.8], [0, -0.6, 0.8], [0, 0.6, 0.8], [0.45, 0, 0.8], [-0.45, 0, 0.8], [0, -1.15, 0.8], [0, 1.15, 0.8], [0.45, -0.6, 0.8], [-0.45, 0.6, 0.8],
+  [0, 0, 0.66], [0, -0.55, 0.66], [0, 0.55, 0.66], [0.4, 0, 0.66], [-0.4, 0, 0.66], [0.4, -0.55, 0.66], [-0.4, -0.55, 0.66], [0.4, 0.55, 0.66], [-0.4, 0.55, 0.66], [0, -1.05, 0.66], [0, 1.05, 0.66],
+  [0.9, 0, 0.8], [-0.9, 0, 0.8], [0, -1.7, 0.8], [0, 1.7, 0.8],
+  [0, 0, 0.55], [0, -0.5, 0.55], [0, 0.5, 0.55], [0.35, 0, 0.55], [-0.35, 0, 0.55], [0, -0.95, 0.55], [0, 0.95, 0.55], [0.7, 0, 0.55], [-0.7, 0, 0.55],
+];
 
 // 軽くするため、画面が止まっているときは描き直さない。
 // カメラが動いたとき、操作の直後（1.5秒）、アニメーション中だけ描く（念のため1秒に1回は描く）

@@ -465,3 +465,6 @@ body.lbl-far .room-label.ex:not(.multi) .ex-title, body.lbl-far .wing-label.ex:n
   white-space: normal; max-width: 5.4em; line-height: 1.12; text-align: center; word-break: break-all;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: clip;
 }
+/* ずらした出し物の名前：うすい影で、もとの場所から少し離れていることがわかるように */
+.room-label.ex.moved, .wing-label.ex.moved { box-shadow: 0 2px 8px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.08); }
+.room-label.ex, .wing-label.ex { transition: translate .25s ease, scale .25s ease, opacity .2s; }
