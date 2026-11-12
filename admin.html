@@ -141,7 +141,7 @@
   </main>
 
   <script type="module">
-    import { FESTIVAL, loadExhibits, matchPlace, genreColor, esc, LOCAL_CSV, imageList } from "./js/festival.js";
+    import { FESTIVAL, loadExhibits, matchPlace, rowWarnings, genreColor, esc, LOCAL_CSV, imageList } from "./js/festival.js";
     import { baseRooms } from "./js/rooms.js";
     import { SITE_INFO, SITE } from "./js/info.js";
 
@@ -158,13 +158,16 @@
 
     async function check() {
       $("status").textContent = "読み込み中…";
-      const { list, source, error, forms, formError, unmatched } = await loadExhibits();
+      // 管理画面は、いまの本当の状態を見せる（前に読めたデータは使わない）
+      const { list, source, error, warnings, forms, formError, unmatched } = await loadExhibits({ useCache: false });
       const from = source === "sheet" ? "Google スプレッドシート" : source === "local" ? `このリポジトリの ${LOCAL_CSV}` : "（読み込めませんでした）";
       const rows = list.map((e) => ({ e, m: matchPlace(e.place, rooms, sites) }));
       const nOk = rows.filter((r) => r.m && !r.m.warn).length, nWarn = rows.filter((r) => r.m?.warn).length, nNg = rows.filter((r) => !r.m).length;
       $("status").className = "status" + (error && source !== "sheet" && FESTIVAL.sheetUrl ? " ng" : "");
       $("status").innerHTML = `読み込み先：<b>${from}</b>　／　出し物 <b>${list.length}</b> 件（<span class="ok">✅ ${nOk}</span>　<span class="warn">⚠️ ${nWarn}</span>　<span class="ng">❌ ${nNg}</span>）`
-        + (error && FESTIVAL.sheetUrl && source !== "sheet" ? `<br>スプレッドシートを読めませんでした：${esc(error)}` : "")
+        + (error && FESTIVAL.sheetUrl && source !== "sheet" ? `<br>⚠️ スプレッドシートを読めませんでした：${esc(error)}<br><span class="muted">→ 地図とパンフレットは、そのあいだ前に読めた内容を出し続けます（見る人の画面はこわれません）。</span>` : "")
+        + (error && !FESTIVAL.sheetUrl ? `<br>⚠️ ${esc(error)}` : "")
+        + warnings.map((w) => `<br>⚠️ ${esc(w)}`).join("")
         + `<br><span class="muted">${new Date().toLocaleTimeString("ja-JP")} に確認。スプレッドシートを書きかえてから反映まで数分かかることがあります。</span>`;
       $("check").innerHTML = `<tr><th>行</th><th>場所（書いた内容）</th><th>マップの場所</th><th>出し物名</th><th>団体名</th><th>ジャンル</th><th>時間</th><th>フォーム</th></tr>` + rows.map(({ e, m }) => `
         <tr>
@@ -172,7 +175,7 @@
           <td>${esc(e.place) || '<span class="ng">（空）</span>'}</td>
           <td>${m ? `<span class="${m.warn ? "warn" : "ok"}">${m.warn ? "⚠️" : "✅"}</span> <a href="${mapLink(m)}" target="_blank">${m.room ? `${m.room.floor}階 ${esc(m.room.name)}` : `屋外・${esc(m.site.name)}`}</a>${m.warn ? `<div class="note">${esc(m.warn)}</div>` : ""}`
             : `<span class="ng">❌ 見つかりません</span><div class="note">「④ 場所の一覧」の名前を書いてください</div>`}</td>
-          <td>${esc(e.title)}</td><td>${esc(e.group)}</td>
+          <td>${esc(e.title)}${rowWarnings(e).map((w) => `<div class="note">⚠️ ${esc(w)}</div>`).join("")}</td><td>${esc(e.group)}</td>
           <td>${e.genre ? `<span class="genre" style="background:${genreColor(e.genre)}">${esc(e.genre)}</span>` : ""}</td>
           <td style="white-space:pre-line">${esc(e.time)}</td>
           <td>${e.fromForm ? `<span class="ok">✅ 受付済</span>` : `<span class="muted">まだ</span>`}${imageList(e.image).length ? `<div class="muted">📷 ${imageList(e.image).length}枚</div>` : ""}</td>

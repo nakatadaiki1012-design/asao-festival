@@ -5,7 +5,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { speckle, hsl } from "./tex.js";
 import { ROOMS_RAW } from "./data.js";
 import { baseRooms } from "./rooms.js";
-import { FESTIVAL, loadExhibits, matchPlace, exhibitCardsHtml, genreColor, esc } from "./festival.js";
+import { FESTIVAL, loadExhibits, resolveExhibits, exhibitCardsHtml, genreColor, esc } from "./festival.js";
 import { FOOTPRINTS, OPEN_COURTS, STAIRS, WINGS, CATEGORIES, describe, SCHOOL, SITE, SITE_INFO, SITE_NOTE, AERIAL_ALIGN, FACADE, BLOCKS, PILOTIS, ROOM_PARTS, COLUMN_AREAS, GYM_GALLERY, ROOM_EDITS, EXTRA_ROOMS, ROOM_SPLITS, ROOM_STYLE, WALL_OPENINGS, PHOTOS, GEO_ALIGN, SEARCH_ALIASES, VENDING_NOTE } from "./info.js";
 import { buildFurniture, floorStyle, FLOOR_TEX } from "./furniture.js";
 import { buildTrees, buildColumnTrees, hedgeBox, hedgeMass, matHedge, bakeStatic } from "./nature.js";
@@ -2816,13 +2816,11 @@ function placeTents() {
 function applyExhibits(list) {
   for (const r of ROOMS) r.exhibits = null;
   for (const it of SITE_INFO) it.exhibits = null;
-  EXHIBITS = list.map((e) => {
-    const m = matchPlace(e.place, ROOMS, EX_SITES);
-    const o = { ...e, room: m?.room || null, site: m?.site || null, alias: m?.alias || "" };
+  EXHIBITS = resolveExhibits(list, ROOMS, EX_SITES);
+  for (const o of EXHIBITS) {
     if (o.room) (o.room.exhibits ||= []).push(o);
     if (o.site) (o.site.exhibits ||= []).push(o);
-    return o;
-  });
+  }
   placeTents();
   for (const r of ROOMS) if (r.label) exLabel(r.label, r.exhibits, shortName(r));
   for (const it of SITE_INFO) if (it.label) {
@@ -2849,12 +2847,16 @@ function applyExhibits(list) {
 
 let exSig = "";
 async function refreshExhibits() {
-  const { list, error } = await loadExhibits();
+  let res;
+  try { res = await loadExhibits(); } catch (e) { console.warn("出し物データ:", e); return; }
+  const { list, ok, error, formError } = res;
+  if (error || formError) console.warn("出し物データ:", error || formError);
+  // 最新のデータが読めなかったときは、いま出しているデータをそのまま使う（地図を空にしたり、古い見本にもどしたりしない）
+  if (!ok && EXHIBITS.length) return;
   const sig = JSON.stringify(list);
   if (sig === exSig) return;
   exSig = sig;
-  if (error) console.warn("出し物データ:", error);
-  applyExhibits(list);
+  try { applyExhibits(list); } catch (e) { console.error("出し物を地図に出せませんでした:", e); }
 }
 
 // 出し物の一覧（上の「🎪 出し物」ボタン）

@@ -1,9 +1,18 @@
 // 文化祭の出し物データ：読み込み（Google スプレッドシート または data/exhibits.csv）と、場所の名前から部屋を探す処理。
-// 3D表示（app.js）と管理画面（admin.html）の両方で使う。
+// 地図（app.js）・パンフレット（pamphlet.html）・管理画面（admin.html）のすべてで、ここだけを使う。
 import { FESTIVAL } from "./festival-config.js";
 
 export { FESTIVAL };
 export const LOCAL_CSV = "data/exhibits.csv";
+
+// ============================================================================
+// 出し物データの読み込み
+//   データがこわれないための決まり：
+//   ・読み込んだ表は「見出し」を確かめる。必要な列（場所・出し物名）がない表は使わない（列がずれた表で地図をこわさない）
+//   ・1つ1つの値は、制御文字をのぞき、長すぎるものは切る（表示がくずれない）
+//   ・読みこめなかったときは、前に読めたデータ（このブラウザに保存）を使う。見本の CSV で上書きしない
+//   ・元のデータは書きかえない（フォームをかさねるときも、新しい配列を作る）
+// ============================================================================
 
 // スプレッドシートの URL を、CSV（表のデータ）を取り出す URL に変える
 export function sheetCsvUrl(url) {
@@ -12,14 +21,15 @@ export function sheetCsvUrl(url) {
   const m = url.match(/\/spreadsheets\/d\/([\w-]+)/);
   if (!m || m[1] === "e") return url;
   const gid = url.match(/[#&?]gid=(\d+)/)?.[1];
-  return `https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv${gid ? `&gid=${gid}` : ""}`;
+  // headers=1：1行目だけを見出しにする（Google が見出しの行を勝手にまとめてしまうのを防ぐ）
+  return `https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv&headers=1${gid ? `&gid=${gid}` : ""}`;
 }
 
 // CSV（カンマ区切りの表）を行の配列にする。"..." の中のカンマ・改行もあつかう
 export function parseCsv(text) {
   const rows = [];
   let row = [], cell = "", q = false;
-  text = text.replace(/^﻿/, "");
+  text = String(text ?? "").replace(/^\uFEFF/, "");
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (q) {
@@ -36,79 +46,172 @@ export function parseCsv(text) {
   return rows.filter((r) => r.some((c) => c.trim()));
 }
 
-// 表の見出し（1行目）の名前 → データの項目。見出しは多少ちがっても読めるようにする
+// 表の見出し（1行目）の名前 → データの項目。見出しは多少ちがっても読めるようにする。
+// 上から順に決める（「紹介画像」は画像、「紹介文」は説明、のように、先に決まった列は使わない）
 const COLS = [
-  ["place", /場所|教室|部屋/],
+  ["place", /場所|教室|部屋|会場/],
   ["group", /団体|クラス|部活|出展者/],
-  ["title", /出し物|企画|タイトル|名前/],
+  ["title", /出し物|企画名|タイトル|名前|企画/],
   ["genre", /ジャンル|種類|分類/],
   ["time", /時間|日時|日程/],
   ["image", /画像|写真/],
   ["desc", /説明|紹介|内容|PR|ＰＲ/],
   ["hide", /非表示|かくす|隠す/],
 ];
+const FIELDS = COLS.map(([k]) => k);
+// 1つの値の長さの上限（これより長い分は切る）
+const MAX = { place: 40, group: 40, title: 60, genre: 20, time: 120, image: 2000, desc: 1200, hide: 10 };
+export const MAX_ROWS = 500;
 
-export function rowsToExhibits(rows) {
-  if (!rows.length) return [];
-  const head = rows[0].map((h) => h.trim());
-  const idx = {};
+// 値をきれいにする：制御文字（目に見えない文字）をのぞく、前後の空白をとる、改行は3つまで、長さを切る
+export function clean(v, max = 200) {
+  let s = String(v ?? "").normalize("NFC")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B-\u200F\u2028\u2029\uFEFF]/g, "")
+    .replace(/\r\n?/g, "\n").replace(/[ \t\u3000]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  if ([...s].length > max) s = [...s].slice(0, max).join("") + "…";
+  return s;
+}
+const isHidden = (v) => /^(true|1|○|〇|◯|はい|yes|x|×|✕|✓|✔)$/i.test(String(v).normalize("NFKC").trim());
+
+// 見出しから、どの列がどの項目かを決める
+export function headerMap(head) {
+  const h = head.map((x) => clean(x, 60));
+  const idx = {}, used = new Set();
   for (const [k, re] of COLS) {
-    const i = head.findIndex((h, j) => re.test(h) && !Object.values(idx).includes(j));
-    if (i >= 0) idx[k] = i;
+    const i = h.findIndex((x, j) => !used.has(j) && re.test(x));
+    if (i >= 0) { idx[k] = i; used.add(i); }
   }
-  return rows.slice(1).map((r, n) => {
-    const o = { line: n + 2 };
-    for (const [k] of COLS) o[k] = idx[k] !== undefined ? (r[idx[k]] || "").trim() : "";
-    return o;
-  }).filter((o) => (o.place || o.title || o.group) && !/^(true|1|○|〇|はい|yes|x|×)$/i.test(o.hide));
+  return idx;
 }
 
-async function fetchCsv(u) {
+// 表（行の配列）→ 出し物の一覧。表がおかしいときは error を返す（その表は使わない）
+//   kind："main"（出し物の表：場所と出し物名か団体名が必要） / "form"（フォームの回答：団体名が必要）
+export function tableToExhibits(rows, kind = "main") {
+  if (!rows.length) return { list: [], warnings: [], error: "表が空です" };
+  const idx = headerMap(rows[0]);
+  const need = kind === "form" ? ["group"] : ["place"];
+  const miss = need.filter((k) => idx[k] === undefined);
+  if (miss.length || (kind === "main" && idx.title === undefined && idx.group === undefined)) {
+    return { list: [], warnings: [], error: `1行目の見出しに「${kind === "form" ? "団体名" : "場所」「出し物名"}」がありません。見出しの名前を変えたり、行を消したりしていないか確かめてください` };
+  }
+  const warnings = [];
+  let body = rows.slice(1);
+  if (body.length > MAX_ROWS) { warnings.push(`行が多すぎるので、はじめの ${MAX_ROWS} 行だけ使います`); body = body.slice(0, MAX_ROWS); }
+  const list = [];
+  body.forEach((r, n) => {
+    const o = { line: n + 2 };
+    for (const k of FIELDS) o[k] = idx[k] !== undefined ? clean(r[idx[k]], MAX[k]) : "";
+    if (!(o.place || o.title || o.group) || isHidden(o.hide)) return;
+    delete o.hide;
+    list.push(Object.freeze(o));
+  });
+  return { list, warnings, error: "" };
+}
+// 前と同じ使い方用（見出しがおかしいときは空の一覧）
+export const rowsToExhibits = (rows) => tableToExhibits(rows).list;
+
+// 1行ずつの注意（管理画面に出す）
+export function rowWarnings(e) {
+  const w = [];
+  if (!e.title) w.push("出し物名が空です");
+  if (!e.place) w.push("場所が空です");
+  if (e.genre && !FESTIVAL.genres[e.genre]) w.push(`ジャンル「${e.genre}」は色分けにないので「その他」の色になります`);
+  if (e.image) {
+    const bad = String(e.image).split(/[\s,、]+/).filter((u) => u && !imageUrl(u));
+    if (bad.length) w.push(`画像の URL として読めないものがあります（${bad.slice(0, 2).join("、")}）`);
+  }
+  return w;
+}
+
+// 出し物の種類（パンフレットの章）："stage"（ステージ） / "food"（飲食） / "exhibit"（展示企画・そのほか）
+export function categoryOf(genre) {
+  const g = String(genre || "");
+  if (/ステージ|演奏|ライブ|発表|演劇|ダンス/.test(g)) return "stage";
+  if (/飲食|食べ|フード|カフェ|喫茶/.test(g)) return "food";
+  return "exhibit";
+}
+
+async function fetchTable(u, kind) {
   const res = await fetch(u, { cache: "no-store" });
   if (!res.ok) throw new Error(`読み込めませんでした（${res.status}）`);
   const text = await res.text();
   if (/^\s*</.test(text)) throw new Error("スプレッドシートが公開されていないようです（共有を「リンクを知っている全員」にしてください）");
-  return rowsToExhibits(parseCsv(text));
+  const t = tableToExhibits(parseCsv(text), kind);
+  if (t.error) throw new Error(t.error);
+  return t;
 }
 
 // 団体名をくらべるための形（空白・記号のちがいを気にしない）
 export const groupKey = (s) => norm(s).replace(/[()（）「」『』・,、.。!！?？]/g, "");
 
-// フォームの回答を、出し物の表に「団体名」でかさねる。
+// フォームの回答を、出し物の表に「団体名」でかさねる（元の一覧は変えずに、新しい一覧を返す）。
 // 同じ団体が何回も送ったときは、あとの回答が勝つ（書いた項目だけ上書き）。場所とジャンルは表のまま
 export function mergeForms(list, forms) {
+  const out = list.map((e) => ({ ...e }));
   const byKey = new Map(); // 同じ団体が何行もあるとき（ステージの1日目・2日目など）は、全部の行にかさねる
-  for (const e of list) { const k = groupKey(e.group); if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(e); }
+  for (const e of out) { const k = groupKey(e.group); if (!k) continue; if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(e); }
   const unmatched = [];
   for (const f of forms) {
-    const es = byKey.get(groupKey(f.group));
-    if (!f.group || !es) { unmatched.push(f); continue; }
+    const es = f.group && byKey.get(groupKey(f.group));
+    if (!es) { unmatched.push(f); continue; }
     for (const e of es) {
       for (const k of ["desc", "image"]) if (f[k]) e[k] = f[k];
       if (es.length === 1) for (const k of ["title", "time"]) if (f[k]) e[k] = f[k]; // 時間・名前は1行だけのときに上書き
       e.fromForm = (e.fromForm || 0) + 1;
     }
   }
-  return unmatched;
+  return { list: out.map((e) => Object.freeze(e)), unmatched };
 }
 
-// 出し物データを読む。シートが読めないときは data/exhibits.csv を読む。
-// フォームの回答のシートがあれば、それもかさねる
-export async function loadExhibits() {
+// 前に読めたデータを、このブラウザにとっておく（ネットが切れたり、表が一時的におかしくなったりしたときに使う）
+const CACHE_KEY = "festival-exhibits-v1";
+function saveCache(data) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), url: FESTIVAL.sheetUrl || "", ...data })); } catch { /* 保存できなくても動く */ }
+}
+function loadCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+    if (!c || !Array.isArray(c.list) || (c.url || "") !== (FESTIVAL.sheetUrl || "")) return null; // 別のシートのデータは使わない
+    return c;
+  } catch { return null; }
+}
+
+// 出し物データを読む。
+//   シートがあるとき：シート → （だめなら）前に読めたデータ → （それもなければ）data/exhibits.csv
+//   シートがないとき：data/exhibits.csv → （だめなら）前に読めたデータ
+//   フォームの回答のシートがあれば、それもかさねる（フォームが読めなくても、出し物の表はそのまま出す）
+//   返り値の ok が false のときは、最新のデータではない（source でどこから読んだかがわかる）
+export async function loadExhibits({ useCache = true } = {}) {
   const url = sheetCsvUrl(FESTIVAL.sheetUrl);
-  const tries = url ? [["sheet", url], ["local", LOCAL_CSV]] : [["local", LOCAL_CSV]];
-  let error = "", list = [], source = "none";
+  const tries = url ? [["sheet", url], ["cache"], ["local", LOCAL_CSV]] : [["local", LOCAL_CSV], ["cache"]];
+  let error = "", base = null, source = "none", warnings = [], cachedAt = 0;
   for (const [src, u] of tries) {
-    try { list = await fetchCsv(u); source = src; break; }
+    if (src === "cache") {
+      const c = useCache && loadCache();
+      if (c) { base = c.list; source = "cache"; cachedAt = c.at; break; }
+      continue;
+    }
+    try { const t = await fetchTable(u, "main"); base = t.list; warnings = t.warnings; source = src; break; }
     catch (e) { error = error || String(e.message || e); }
   }
+  let list = base || [];
   let forms = [], formError = "", unmatched = [];
   const furl = sheetCsvUrl(FESTIVAL.formSheetUrl);
-  if (furl) {
-    try { forms = await fetchCsv(furl); unmatched = mergeForms(list, forms); }
+  if (furl && source !== "cache") {
+    try { forms = (await fetchTable(furl, "form")).list; ({ list, unmatched } = mergeForms(list, forms)); }
     catch (e) { formError = String(e.message || e); }
   }
-  return { list, source, error, forms, formError, unmatched };
+  const ok = source === (url ? "sheet" : "local") && !formError;
+  if (ok) saveCache({ list });
+  return { list, source, ok, error, warnings, forms, formError, unmatched, cachedAt };
+}
+
+// 出し物に、地図の上の場所（部屋・屋外）を結びつけた、新しい一覧を作る（元の一覧・部屋のデータは変えない）
+export function resolveExhibits(list, rooms, sites = []) {
+  return list.map((e, i) => {
+    const m = matchPlace(e.place, rooms, sites);
+    return { ...e, key: `${e.line || i}`, room: m?.room || null, site: m?.site || null, alias: m?.alias || "", placeWarn: m?.warn || "" };
+  });
 }
 
 // ---------- 場所の名前から、部屋（または屋外の場所）を探す ----------
@@ -182,7 +285,7 @@ export function imageUrl(u) {
   if (!u) return "";
   const m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]+)/);
   if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w1000`;
-  return /^(https?:)?\/\/|^images\//.test(u) ? u : "";
+  return /^https?:\/\/[^\s"'<>]+$|^images\/[\w./-]+$/.test(u) && !/\.\./.test(u) ? u : "";
 }
 
 // 写真：1枚目は大きく、2枚目からは小さく。押すと画面いっぱいに大きく見られる（地図の部屋の写真と同じしくみ）

@@ -370,7 +370,7 @@
   <div id="detail" role="dialog" aria-modal="true"><div class="sheet" id="sheet"></div></div>
 
   <script type="module">
-    import { FESTIVAL, loadExhibits, matchPlace, genreColor, imageList, esc } from "./js/festival.js";
+    import { FESTIVAL, loadExhibits, resolveExhibits, categoryOf, genreColor, imageList, esc } from "./js/festival.js";
     import { baseRooms } from "./js/rooms.js";
     import { SITE_INFO, SITE } from "./js/info.js";
 
@@ -591,8 +591,8 @@
     // ---------- データ ----------
     const rooms = baseRooms();
     const sites = SITE_INFO.filter((it) => !it.key || SITE[it.key]);
-    const isStage = (e) => /ステージ|演奏|ライブ|発表|演劇|ダンス/.test(e.genre);
-    const isFood = (e) => /飲食|食べ|フード|カフェ|喫茶/.test(e.genre);
+    const isStage = (e) => categoryOf(e.genre) === "stage";
+    const isFood = (e) => categoryOf(e.genre) === "food";
     const minutes = (t) => { const m = String(t || "").normalize("NFKC").match(/(\d{1,2}):(\d{2})/); return m ? Number(m[1]) * 60 + Number(m[2]) : 9999; };
     // 「9/11（金）13:20〜」の日にち。並べるときのため "09-11" の形にする
     const dayKey = (t) => { const m = String(t || "").normalize("NFKC").match(/(\d{1,2})\/(\d{1,2})(?:\s*\((.)\))?/); return m ? `${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}${m[3] || ""}` : ""; };
@@ -693,11 +693,13 @@
     show();
     let sig = "";
     async function refresh() {
-      const { list } = await loadExhibits();
-      const s = JSON.stringify(list);
+      let res;
+      try { res = await loadExhibits(); } catch (e) { console.warn("出し物データ:", e); return; }
+      if (!res.ok && ALL.length) return; // 最新が読めなかったときは、いま出している内容のまま
+      const s = JSON.stringify(res.list);
       if (s === sig) return;
       sig = s;
-      ALL = list.map((e) => { const m = matchPlace(e.place, rooms, sites); return { ...e, room: m?.room || null, site: m?.site || null, alias: m?.alias || "" }; });
+      ALL = resolveExhibits(res.list, rooms, sites);
       render();
     }
     refresh();
