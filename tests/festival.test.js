@@ -134,3 +134,14 @@ test("読み込みに失敗しても、前に読めたデータを使う", async
   assert.equal(d.list.length, 0);
   assert.ok(d.error);
 });
+
+test("名前の改行位置：言葉の途中では切らない", async () => {
+  const { phraseHtml } = await import("../js/festival.js");
+  const parts = (t) => phraseHtml(t).split("<wbr>").map((x) => x.replace(/&[a-z#0-9]+;/g, "?"));
+  assert.deepEqual(parts("えいちゃんの本気のたこ焼き"), ["えいちゃんの", "本気の", "たこ焼き"]);
+  assert.ok(!parts("肉と雅子のあいだ").some((x) => x === "いだ" || x === "だ"));
+  assert.ok(parts("一本堂？（いっぽんどう？）").includes("一本堂？"));
+  assert.ok(parts("つぶつぶプラネット").includes("プラネット"));
+  assert.ok(!parts("動物パニック").some((x) => x.length === 1), "1文字だけの行を作らない");
+  assert.equal(phraseHtml("<b>"), "&lt;b&gt;", "HTML として安全");
+});

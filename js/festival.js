@@ -274,6 +274,42 @@ export function matchPlace(text, rooms, sites = []) {
 
 export const genreColor = (g) => FESTIVAL.genres[g] || FESTIVAL.genres["その他"] || "#868e96";
 
+// 名前を、読みやすい所（文節の切れ目）だけで改行できる HTML にする。
+//   改行してよい所：助詞（の・は・が…）や句読点・！？の後ろ、かっこの前、ひらがなとカタカナ・漢字・英字の変わり目、空白
+//   「たこ焼／き」「アズマニ／ア」のような、言葉の途中での改行はしない（CSS の word-break: keep-all と組み合わせて使う）
+const SEG = typeof Intl !== "undefined" && Intl.Segmenter ? new Intl.Segmenter("ja", { granularity: "word" }) : null;
+const kind = (ch) => !ch ? "" : /[ぁ-ゟ]/.test(ch) ? "h" : /[゠-ヿｦ-ﾟ]/.test(ch) ? (ch === "ー" ? "-" : "k") : /[一-鿿々]/.test(ch) ? "c" : /[A-Za-z0-9]/.test(ch) ? "l" : "p";
+const PARTICLE = /^(の|は|が|を|に|で|と|へ|も|や|か|な|ね|よ|から|まで|より|って)$/;
+const OPEN = /^[（(「『【〈《［\[]/, CLOSE = /[、。，．！？!?）)」』】〉》］\]・]$/, WAVE = /^[〜～]$/;
+export function phraseHtml(text) {
+  const t = String(text ?? "");
+  if (!SEG) return esc(t);
+  const segs = [...SEG.segment(t)].map((x) => x.segment);
+  let out = "";
+  segs.forEach((cur, i) => {
+    out += esc(cur);
+    const next = segs[i + 1];
+    if (!next || /\s$/.test(cur) || /^\s/.test(next)) return; // 空白はもともと改行できる
+    const a = cur.at(-1), b = next[0], ka = kind(a), kb = kind(b);
+    let ok = false;
+    if (PARTICLE.test(cur) && !CLOSE.test(b) && !PARTICLE.test(next)) ok = true;     // 「本気の／たこ焼き」
+    else if (CLOSE.test(a) && !CLOSE.test(b)) ok = true;                                // 「MBTI風！／天星術」
+    else if (OPEN.test(b) || (WAVE.test(next) && i + 2 < segs.length)) ok = true;     // 「一本堂？／（いっぽんどう？）」「栁家／～これ…」
+    else if (ka && kb && ka !== kb && !(ka === "c" && kb === "h") && kb !== "-" && ka !== "p" && kb !== "p") ok = true; // 「つぶつぶ／プラネット」（「焼き」の送りがなは切らない）
+    else if (ka === "k" && kb === "k" && [...cur].length >= 3 && [...next].length >= 3) ok = true; // 「ジュラシック／シンフォニー」
+    if (ok) out += "<wbr>";
+  });
+  return out;
+}
+
+// 文節ごとに、途中で改行しないかたまり（<span class="ph">）にした HTML。改行はかたまりのあいだだけでおこる。
+// かたまりの幅はブラウザがはかるので、名前の枠は自然にいちばん長い文節より細くならない
+export function phraseSpans(text) {
+  return phraseHtml(text).split("<wbr>")
+    .map((part) => part.split(/(\s+)/).map((x) => (!x ? "" : /^\s+$/.test(x) ? " " : `<span class="ph">${x}</span>`)).join(""))
+    .join("<wbr>");
+}
+
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 export { esc };
 

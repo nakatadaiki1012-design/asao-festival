@@ -500,3 +500,34 @@ body.lbl-far .room-label.ex.multi .ex-title, body.lbl-far .wing-label.ex.multi .
 .room-label.ex.multi .ex-title::before, .wing-label.ex.multi .ex-title::before { align-self: center; height: 7px; }
 body.lbl-far .room-label.ex.multi .ex-title::before, body.lbl-far .wing-label.ex.multi .ex-title::before { height: 5px; }
 .room-label.ex.multi, .wing-label.ex.multi { align-items: stretch; }
+
+/* ---------- 名前の改行：言葉の途中で切らない（<wbr> の所と空白だけで改行）、行の長さをそろえる ---------- */
+.room-label.ex .ex-title, .wing-label.ex .ex-title,
+body.lbl-mid .room-label.ex .ex-title, body.lbl-mid .wing-label.ex .ex-title,
+body.lbl-far .room-label.ex .ex-title, body.lbl-far .wing-label.ex .ex-title,
+body.lbl-far .room-label.ex:not(.multi) .ex-title, body.lbl-far .wing-label.ex:not(.multi) .ex-title {
+  word-break: keep-all; overflow-wrap: anywhere; line-break: strict; text-wrap: balance; letter-spacing: .01em;
+}
+/* 遠くから見るときも、読める大きさに（9px より小さくしない）。そのぶん少し横に広く */
+body.lbl-far .room-label.ex .ex-title, body.lbl-far .wing-label.ex .ex-title { font-size: 9.5px; max-width: 6.6em; line-height: 1.15; }
+body.lbl-far .room-label.ex .ex-title.l1, body.lbl-far .wing-label.ex .ex-title.l1 { font-size: 9.5px; max-width: 6.8em; }
+body.lbl-far .room-label.ex .ex-title.l2, body.lbl-far .wing-label.ex .ex-title.l2,
+body.lbl-far .room-label.ex .ex-title.l3, body.lbl-far .wing-label.ex .ex-title.l3 { font-size: 9px; max-width: 7.6em; }
+body.lbl-mid .room-label.ex .ex-title.l2, body.lbl-mid .wing-label.ex .ex-title.l2,
+body.lbl-mid .room-label.ex .ex-title.l3, body.lbl-mid .wing-label.ex .ex-title.l3 { max-width: 8.6em; }
+body.lbl-far .room-label.ex .ex-title.l3, body.lbl-far .wing-label.ex .ex-title.l3 { max-width: 8.8em; }
+.room-label.ex .ex-title.l3, .wing-label.ex .ex-title.l3, body.lbl-mid .room-label.ex .ex-title.l3, body.lbl-mid .wing-label.ex .ex-title.l3 { max-width: 9.6em; }
+body.lbl-far .room-label.ex .ex-title.l2, body.lbl-far .wing-label.ex .ex-title.l2 { max-width: 8.6em; }
+/* かっこ・句読点のすきまを詰める（日本語のつめ組み）。名前が短くなって、改行が減る */
+.room-label.ex .ex-title, .wing-label.ex .ex-title { font-feature-settings: "palt" 1; }
+/* 名前の枠は、いちばん長い文節の幅より細くしない（文節は途中で改行しないかたまり .ph） */
+.room-label.ex .ex-title .ph, .wing-label.ex .ex-title .ph { display: inline-block; white-space: nowrap; }
+.room-label.ex .ex-title, .wing-label.ex .ex-title { min-width: min-content; }
+.room-label.ex .ex-title .tx, .wing-label.ex .ex-title .tx { min-width: min-content; }
+/* いくつもならべるとき：点は1行目の高さに。横幅は少し広く（3行に折れないように） */
+.room-label.ex.multi .ex-title, .wing-label.ex.multi .ex-title,
+body.lbl-mid .room-label.ex.multi .ex-title, body.lbl-mid .wing-label.ex.multi .ex-title,
+body.lbl-far .room-label.ex.multi .ex-title, body.lbl-far .wing-label.ex.multi .ex-title { align-items: start; max-width: 11em; }
+body.lbl-far .room-label.ex.multi .ex-title, body.lbl-far .wing-label.ex.multi .ex-title { max-width: 9.5em; }
+.room-label.ex.multi .ex-title::before, .wing-label.ex.multi .ex-title::before { margin-top: .38em; }
+.room-label.ex.multi .ex-title + .ex-title, .wing-label.ex.multi .ex-title + .ex-title { margin-top: 1px; }

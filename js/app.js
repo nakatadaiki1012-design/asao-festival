@@ -5,7 +5,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { speckle, hsl } from "./tex.js";
 import { ROOMS_RAW } from "./data.js";
 import { baseRooms } from "./rooms.js";
-import { FESTIVAL, loadExhibits, resolveExhibits, exhibitCardsHtml, genreColor, esc } from "./festival.js";
+import { FESTIVAL, loadExhibits, resolveExhibits, exhibitCardsHtml, genreColor, esc, phraseSpans } from "./festival.js";
 import { FOOTPRINTS, OPEN_COURTS, STAIRS, WINGS, CATEGORIES, describe, SCHOOL, SITE, SITE_INFO, SITE_NOTE, AERIAL_ALIGN, FACADE, BLOCKS, PILOTIS, ROOM_PARTS, COLUMN_AREAS, GYM_GALLERY, ROOM_EDITS, EXTRA_ROOMS, ROOM_SPLITS, ROOM_STYLE, WALL_OPENINGS, PHOTOS, GEO_ALIGN, SEARCH_ALIASES, VENDING_NOTE } from "./info.js";
 import { buildFurniture, floorStyle, FLOOR_TEX } from "./furniture.js";
 import { buildTrees, buildColumnTrees, hedgeBox, hedgeMass, matHedge, bakeStatic } from "./nature.js";
@@ -2777,7 +2777,7 @@ function exLabel(el, list, name) {
     el.classList.toggle("multi", many);
     // 長い名前は文字を小さく（長さで3段階）。切らずに折り返して全部出す
     const lenCls = (t) => { const n = [...t].reduce((a, ch) => a + (/[ -~]/.test(ch) ? 0.55 : 1), 0); return n > 16 ? " l3" : n > 11 ? " l2" : n > 7 ? " l1" : ""; };
-    el.innerHTML = `<span class="ex-name">${esc(name)}</span>` + items.slice(0, 4).map(([t, c]) => `<span class="ex-title${lenCls(t)}"${many ? ` style="--d:${c}"` : ""}>${esc(t)}</span>`).join("")
+    el.innerHTML = `<span class="ex-name">${esc(name)}</span>` + items.slice(0, 4).map(([t, c]) => `<span class="ex-title${lenCls(t)}"${many ? ` style="--d:${c}"` : ""}><span class="tx">${phraseSpans(t)}</span></span>`).join("")
       + (items.length > 4 ? `<span class="ex-more">ほか${items.length - 4}</span>` : "");
   }
   el.__w = undefined; // 名前の大きさが変わったので、重なりの計算をやり直す
@@ -3107,13 +3107,13 @@ function declutter() {
       if (far) return;
       _wp.project(cam);
       if (_wp.z > 1) return;
-      if (!el.__w) { el.__w = el.offsetWidth; el.__h = el.offsetHeight; }
+      if (!el.__w) { el.__w = el.offsetWidth; el.__h = el.offsetHeight; const tt = el.querySelector(".ex-title"); el.__fs = tt ? parseFloat(getComputedStyle(tt).fontSize) : 12; }
       if (!el.__w) return; // 表示していない名前（小さくしたときに消したもの）は、場所をとらない
       const x = ((_wp.x + 1) / 2) * W, y = ((1 - _wp.y) / 2) * H, hw = el.__w / 2, hh = el.__h / 2;
       let prio = labelPrio.get(el);
       if (prio === undefined) { const r = ROOMS.find((q) => q.label === el); prio = (r ? (r.grade ? 1e6 : 0) + r.w * r.d : el.classList.contains("site") ? 5e4 : 1e5) + (el.classList.contains("ex") ? 2e6 : 0); labelPrio.set(el, prio); } // 出し物のある場所の名前を先に出す // 外の施設の名前は、棟の名前より後回し
       if (el.classList.contains("selected")) prio = 1e9;
-      items.push({ el, prio, x, y, hw, hh, ex: el.classList.contains("ex") && !el.classList.contains("selected") });
+      items.push({ el, prio, x, y, hw, hh, ex: el.classList.contains("ex") && !el.classList.contains("selected"), minSc: Math.min(1, 8.5 / (el.__fs || 12)) });
     });
   }
   items.sort((a, b) => b.prio - a.prio);
@@ -3123,7 +3123,7 @@ function declutter() {
   const free = (l, r, t, b) => l > -4 && r < W + 4 && t > 50 && b < H + 4 && !placed.some((q) => l < q.r - 1 && r > q.l + 1 && t < q.b && b > q.t);
   for (const a of items) {
     let ok = null;
-    const tries = a.ex ? SPOTS : SPOTS.slice(0, 1);
+    const tries = a.ex ? SPOTS.filter((sp) => sp[2] >= a.minSc - 0.001) : SPOTS.slice(0, 1); // 文字が 8.5px より小さくなるほどは縮めない
     for (const [ox, oy, sc] of tries) {
       const hw = a.hw * sc, hh = a.hh * sc, cx = a.x + ox * a.hw * 2, cy = a.y + oy * a.hh * 2;
       if (free(cx - hw, cx + hw, cy - hh, cy + hh)) { ok = [ox * a.hw * 2, oy * a.hh * 2, sc, cx - hw, cx + hw, cy - hh, cy + hh]; break; }
